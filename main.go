@@ -1,13 +1,13 @@
 package main
 
 import (
-	"code.google.com/p/goauth2/oauth"
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"github.com/gorilla/sessions"
 	"github.com/joinmytalk/xlog"
+	"github.com/voxelbrain/goptions"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -15,21 +15,8 @@ import (
 )
 
 const (
-	clientID     = "605861013997.apps.googleusercontent.com"
-	clientSecret = "9U2caRe9V4rre8qNVGM8ZAub"
+	SESSION_NAME = "SATSUMA_COOKIE"
 )
-
-// config is the configuration specification supplied to the OAuth package.
-var config = &oauth.Config{
-	ClientId:     clientID,
-	ClientSecret: clientSecret,
-	// Scope determines which API calls you are authorized to make
-	Scope:    "https://www.googleapis.com/auth/plus.login",
-	AuthURL:  "https://accounts.google.com/o/oauth2/auth",
-	TokenURL: "https://accounts.google.com/o/oauth2/token",
-	// Use "postmessage" for the code-flow for server side apps
-	RedirectURL: "postmessage",
-}
 
 type Token struct {
 	AccessToken string `json:"access_token"`
@@ -43,17 +30,28 @@ type ClaimSet struct {
 	Sub string
 }
 
-var store = sessions.NewCookieStore([]byte(randomString(32)))
+var store sessions.Store
+
+var options = struct {
+	Addr         string `goptions:"-L, --listen, description='Listen address'"`
+	CookieKey    string `goptions:"-k, --key, description='Secret key for cookie store', obligatory"`
+	ClientID     string `goptions:"--clientid, description='Client ID'"`
+	ClientSecret string `goptions:"--clientsecret, description='Client Secret'"`
+}{
+	Addr: "[::]:8080",
+}
 
 func main() {
-	addr := "[::]:8080"
+	goptions.ParseAndFail(&options)
+
+	store = sessions.NewCookieStore([]byte(options.CookieKey))
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/connect", connect)
 	mux.HandleFunc("/api/disconnect", disconnect)
 	mux.Handle("/", http.FileServer(http.Dir("htdocs")))
 
-	httpsrv := &http.Server{Handler: Logger(mux), Addr: addr}
+	httpsrv := &http.Server{Handler: Logger(mux), Addr: options.Addr}
 	if err := httpsrv.ListenAndServe(); err != nil {
 		xlog.Fatalf("ListenAndServe: %v", err)
 	}
@@ -62,16 +60,19 @@ func main() {
 func connect(w http.ResponseWriter, r *http.Request) {
 	// Ensure that the request is not a forgery and that the user sending this
 	// connect request is the expected user
-	session, err := store.Get(r, "sessionName")
+	session, err := store.Get(r, SESSION_NAME)
 	if err != nil {
 		xlog.Errorf("Error fetching session: %v", err)
 		http.Error(w, "Error fetching session", 500)
 		return
 	}
-	if r.FormValue("state") != session.Values["state"].(string) {
-		http.Error(w, "Invalid state parameter", 401)
-		return
-	}
+	/*
+		if r.FormValue("state") != session.Values["state"].(string) {
+			http.Error(w, "Invalid state parameter", 401)
+			return
+		}
+	*/
+
 	// Normally, the state is a one-time token; however, in this example, we want
 	// the user to be able to connect and disconnect without reloading the page.
 	// Thus, for demonstration, we don't implement this best practice.
@@ -124,9 +125,9 @@ func exchange(code string) (accessToken string, idToken string, err error) {
 	values := url.Values{
 		"Content-Type":  {"application/x-www-form-urlencoded"},
 		"code":          {code},
-		"client_id":     {clientID},
-		"client_secret": {clientSecret},
-		"redirect_uri":  {config.RedirectURL},
+		"client_id":     {options.ClientID},
+		"client_secret": {options.ClientSecret},
+		"redirect_uri":  {"postmessage"},
 		"grant_type":    {"authorization_code"},
 	}
 	resp, err := http.PostForm(addr, values)
@@ -188,7 +189,7 @@ func base64Decode(s string) ([]byte, error) {
 
 func disconnect(w http.ResponseWriter, r *http.Request) {
 	// Only disconnect a connected user
-	session, err := store.Get(r, "sessionName")
+	session, err := store.Get(r, SESSION_NAME)
 	if err != nil {
 		xlog.Error("Error fetching session: %v", err)
 		http.Error(w, "Error fetching session", 500)

@@ -54,20 +54,38 @@ satsumaApp.config(['$routeProvider', function($routeProvider) {
 satsumaApp.controller('MainCtrl', ['$scope', '$http', function($scope, $http) {
 
 		$scope.loggedIn = false;
+		$scope.error = null;
 
 		window.signinCallback = function(authData) {
+			$scope.error = null;
 			console.log(authData);
 			if (authData['access_token']) {
-				$scope.loggedIn = true;
-				// TODO: POST to /api/connect
+				$http.post('/api/connect').
+				success(function(data, status, headers, config) {
+					$scope.loggedIn = true;
+				}).
+				error(function(data, status, headers, config) {
+					$scope.error = "Signing in failed. Please try again later.";
+				});
 			} else if (authData['error']) {
-				// TODO: show error.
+				$scope.error = "Signing in failed (" + authData['error'] + ").";
 			}
 			$scope.$apply();
 		};
 
+		$scope.closeError = function() {
+			$scope.error = null;
+		};
+
 		$scope.signOut = function() {
-			$scope.loggedIn = false;
+			$http.post('/api/disconnect').
+			success(function(data, status, headers, config) {
+				$scope.loggedIn = false;
+			}).
+			error(function(data, status, headers, config) {
+				$scope.loggedIn = false;
+				console.log('disconnect failed: ' + data);
+			});
 		};
 
 	}
