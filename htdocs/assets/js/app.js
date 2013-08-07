@@ -42,12 +42,13 @@ satsumaApp.directive('g+signin', function() {
 	};
 });
 
-satsumaApp.config(['$routeProvider', function($routeProvider) {
+satsumaApp.config(['$routeProvider', '$locationProvider', function($routeProvider, $locationProvider) {
 		// TODO: configure routes
+		$locationProvider.html5Mode(true);
 
-		$routeProvider.otherwise({
-			redirectTo: '/'
-		});
+		$routeProvider.when('/', { controller: 'MainCtrl' });
+
+		$routeProvider.otherwise({ redirectTo: '/' });
 	}
 ]);
 
