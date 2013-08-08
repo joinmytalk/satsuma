@@ -56,6 +56,7 @@ satsumaApp.controller('MainCtrl', ['$scope', '$http', function($scope, $http) {
 
 	$scope.loggedIn = false;
 	$scope.error = null;
+	$scope.uploads = [ ];
 
 	window.signinCallback = function(authData) {
 		$scope.error = null;
@@ -64,6 +65,7 @@ satsumaApp.controller('MainCtrl', ['$scope', '$http', function($scope, $http) {
 			$http.post('/api/connect', authData['code']).
 			success(function(data, status, headers, config) {
 				$scope.loggedIn = true;
+				$scope.$broadcast("loggedIn");
 			}).
 			error(function(data, status, headers, config) {
 				$scope.error = "Signing in failed. Please try again later.";
@@ -72,6 +74,17 @@ satsumaApp.controller('MainCtrl', ['$scope', '$http', function($scope, $http) {
 			$scope.error = "Signing in failed (" + authData['error'] + ").";
 		}
 		$scope.$apply();
+	};
+
+	$scope.$on("loggedIn", function() {
+		$scope.getUploads();
+	});
+
+	$scope.getUploads = function() {
+		$http.get('/api/getuploads').
+		success(function(data, status, headers, config) {
+			$scope.uploads = data;
+		});
 	};
 
 	$scope.closeError = function() {
@@ -92,6 +105,7 @@ satsumaApp.controller('MainCtrl', ['$scope', '$http', function($scope, $http) {
 	$scope.uploadComplete = function(content, completed) {
 		if (completed) {
 			$scope.hideUpload();
+			$scope.getUploads();
 		}
 	};
 

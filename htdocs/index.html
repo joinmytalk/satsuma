@@ -85,7 +85,14 @@
 					</div>
 				</form>
 				<h3>Your Presentations</h3>
-				<p>(none)</p>
+				<table class="table table-bordered" ng-show="uploads.length > 0">
+					<tr><th>Title</th><th>Link</th></tr>
+					<tr ng-repeat="upload in uploads">
+						<td>{{upload.title}}</td>
+						<td><a ng-href="/userdata/{{upload._id}}.pdf" target="_blank">Download</a></td>
+					</tr>
+				</table>
+				<p ng-show="uploads.length == 0">You have no presentations uploaded.</p>
 			</div>
 		</div>
 	</body>
