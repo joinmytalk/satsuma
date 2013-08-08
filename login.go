@@ -53,13 +53,18 @@ func Connect(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Check if the user is already connected
-	storedToken := session.Values["accessToken"]
-	storedGPlusID := session.Values["gplusID"]
-	if storedToken != nil && storedGPlusID == gplusID {
-		http.Error(w, "Current user already connected", 200)
-		return
-	}
+	/*
+		// Check if the user is already connected
+		storedToken := session.Values["accessToken"]
+		storedGPlusID := session.Values["gplusID"]
+		if storedToken != nil && storedGPlusID == gplusID {
+			http.Error(w, "Current user already connected", 200)
+			return
+		}
+	*/
+
+	xlog.Debugf("Connect: gplusID = %s", gplusID)
+	xlog.Debugf("Connect: accessToken = %s", accessToken)
 
 	// Store the access token in the session for later use
 	session.Values["accessToken"] = accessToken

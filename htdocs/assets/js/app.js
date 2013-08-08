@@ -61,7 +61,7 @@ satsumaApp.controller('MainCtrl', ['$scope', '$http', function($scope, $http) {
 		$scope.error = null;
 		console.log(authData);
 		if (authData['access_token']) {
-			$http.post('/api/connect').
+			$http.post('/api/connect', authData['code']).
 			success(function(data, status, headers, config) {
 				$scope.loggedIn = true;
 			}).
