@@ -42,6 +42,7 @@ func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/connect", Connect)
 	mux.HandleFunc("/api/disconnect", Disconnect)
+	mux.HandleFunc("/api/upload", Upload)
 	mux.Handle("/", http.FileServer(http.Dir("htdocs")))
 
 	httpsrv := &http.Server{Handler: Logger(mux), Addr: options.Addr}

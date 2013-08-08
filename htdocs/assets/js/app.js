@@ -1,4 +1,4 @@
-var satsumaApp = angular.module('satsuma', []);
+var satsumaApp = angular.module('satsuma', [ 'ngUpload' ]);
 
 
 satsumaApp.directive('g+signin', function() {
@@ -54,40 +54,53 @@ satsumaApp.config(['$routeProvider', '$locationProvider', function($routeProvide
 
 satsumaApp.controller('MainCtrl', ['$scope', '$http', function($scope, $http) {
 
-		$scope.loggedIn = false;
+	$scope.loggedIn = false;
+	$scope.error = null;
+
+	window.signinCallback = function(authData) {
 		$scope.error = null;
-
-		window.signinCallback = function(authData) {
-			$scope.error = null;
-			console.log(authData);
-			if (authData['access_token']) {
-				$http.post('/api/connect').
-				success(function(data, status, headers, config) {
-					$scope.loggedIn = true;
-				}).
-				error(function(data, status, headers, config) {
-					$scope.error = "Signing in failed. Please try again later.";
-				});
-			} else if (authData['error']) {
-				$scope.error = "Signing in failed (" + authData['error'] + ").";
-			}
-			$scope.$apply();
-		};
-
-		$scope.closeError = function() {
-			$scope.error = null;
-		};
-
-		$scope.signOut = function() {
-			$http.post('/api/disconnect').
+		console.log(authData);
+		if (authData['access_token']) {
+			$http.post('/api/connect').
 			success(function(data, status, headers, config) {
-				$scope.loggedIn = false;
+				$scope.loggedIn = true;
 			}).
 			error(function(data, status, headers, config) {
-				$scope.loggedIn = false;
-				console.log('disconnect failed: ' + data);
+				$scope.error = "Signing in failed. Please try again later.";
 			});
-		};
+		} else if (authData['error']) {
+			$scope.error = "Signing in failed (" + authData['error'] + ").";
+		}
+		$scope.$apply();
+	};
 
-	}
-]);
+	$scope.closeError = function() {
+		$scope.error = null;
+	};
+
+	$scope.signOut = function() {
+		$http.post('/api/disconnect').
+		success(function(data, status, headers, config) {
+			$scope.loggedIn = false;
+		}).
+		error(function(data, status, headers, config) {
+			$scope.loggedIn = false;
+			console.log('disconnect failed: ' + data);
+		});
+	};
+
+	$scope.uploadComplete = function(content, completed) {
+		if (completed) {
+			$scope.hideUpload();
+		}
+	};
+
+	$scope.hideUpload = function() {
+		$scope.showUpload = false;
+		$('#upload_form').get(0).reset();
+	};
+
+	$scope.openUpload = function() {
+		$scope.showUpload = true;
+	};
+}]);

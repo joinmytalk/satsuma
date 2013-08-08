@@ -8,10 +8,13 @@
 
 		<link href="/assets/css/satsuma.css" rel="stylesheet">
 
+		<script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+
 		<link href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/css/bootstrap-combined.min.css" rel="stylesheet">
 		<script src="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/js/bootstrap.min.js"></script>
 
 		<script src="//ajax.googleapis.com/ajax/libs/angularjs/1.0.7/angular.min.js"></script>
+		<script src="/assets/js/ng-upload.min.js"></script>
 		<script src="/assets/js/app.js"></script>
 	</head>
 	<body ng-controller="MainCtrl">
@@ -59,7 +62,30 @@
 				<g+signin clientid="605861013997"></g+signin>
 			</div>
 			<div ng-show="loggedIn">
-				<h1>Welcome</h1>
+				<button class="btn btn-primary" ng-click="openUpload()" ng-hide="showUpload">Upload Presentation</button>
+				<form ng-upload action="/api/upload" class="form-horizontal" ng-show="showUpload" id="upload_form">
+					<legend>Upload Presentation</legend>
+					<div class="control-group">
+						<div class="control-label">File you want to upload</div>
+						<div class="controls">
+							<input type="file" name="file">
+						</div>
+					</div>
+					<div class="control-group">
+						<div class="control-label">Presentation title</div>
+						<div class="controls">
+							<input type="text" placeholder="The title of your presentation" name="title">
+						</div>
+					</div>
+					<div class="control-group">
+						<div class="controls">
+							<button type="submit" class="btn btn-primary" upload-submit="uploadComplete(content, completed)">Save</button>
+							<button type="button" class="btn" ng-click="hideUpload()">Cancel</button>
+						</div>
+					</div>
+				</form>
+				<h3>Your Presentations</h3>
+				<p>(none)</p>
 			</div>
 		</div>
 	</body>
