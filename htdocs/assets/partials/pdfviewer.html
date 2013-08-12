@@ -1,2 +1,29 @@
-<p>PDF viewer</p>
-<a href="/">Back</a>
+<div class="container">
+	<div class="row">
+		<div class="btn-toolbar">
+			<div class="btn-group">
+				<a class="btn" href="/" title="Exit presentation"><i class="icon-off"></i>Exit</a>
+			</div>
+			<div class="btn-group">
+				<a class="btn" ng-click="zoomIn()" title="Zoom in"><i class="icon-zoom-in"></i></a>
+				<a class="btn" ng-click="zoomOut()" title="Zoom out"><i class="icon-zoom-out"></i></a>
+			</div>
+			<div class="btn-group">
+				<a class="btn" ng-click="gotoPrev()" title="Previous slide"><i class="icon-backward"></i></a>
+				<a class="btn" ng-click="gotoNext()" title="Next slide"><i class="icon-forward"></i></a>
+			</div>
+		</div>
+		<div class="row">
+			<div class="span12 progress progress-striped active" ng-show="loadProgress > 0">
+				<div class="bar" style="width: {{loadProgress}}%"></div>
+			</div>
+		</div>
+		<div class="row">
+			<div class="span12">
+				<div id="canvas_wrapper">
+					<canvas id="slide_canvas" style="border: 1px solid black"></canvas>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>

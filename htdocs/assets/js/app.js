@@ -55,9 +55,86 @@ satsumaApp.config(['$routeProvider', '$locationProvider', function($routeProvide
 
 satsumaApp.controller('PDFViewCtrl', [ '$scope', '$routeParams', function($scope, $routeParams) {
 	console.log('PDFViewCtrl: new instance. id = ' + $routeParams.id);
+	$scope.id = $routeParams.id;
 
-	// TODO: implement
+	$scope.pageNum = 1;
+	PDFJS.disableWorker = true;
+	$scope.loadProgress = 0;
+	$scope.fullscreen = false;
+	$scope.pdfDoc = null;
+	$scope.origScale = 1.0;
+	$scope.scale = $scope.origScale;
 
+	$scope.loadPDF = function(path) {
+		PDFJS.getDocument(path).then(function(_pdfDoc) {
+			$scope.scale = $scope.origScale;
+			$scope.pdfDoc = _pdfDoc;
+			$scope.renderPage($scope.pageNum, function(success) {
+				$scope.loadProgress = 0;
+				$scope.$apply();
+			});
+		}, function(message, exception) {
+			console.log("PDF load error: " + message);
+		}, function(progressData) {
+			$scope.loadProgress = (100 * progressData.loaded) / progressData.total;
+			$scope.loadProgress = Math.round($scope.loadProgress*100)/100;
+			console.log('loadProgress = ' + $scope.loadProgress);
+			$scope.$apply();
+		});
+	};
+
+	$scope.renderPage = function(num, callback) {
+		$scope.pdfDoc.getPage(num).then(function(page) {
+			var viewport = page.getViewport($scope.scale);
+			if ($scope.fullscreen) {
+				var new_scale = Math.min($scope.scale * (window.screen.height / viewport.height), $scope.scale * (window.screen.width / viewport.width));
+				viewport = page.getViewport(new_scale);
+			}
+
+			var canvas = document.getElementById('slide_canvas');
+			var ctx = canvas.getContext('2d');
+
+			canvas.height = viewport.height;
+			canvas.width = viewport.width;
+
+			page.render({ canvasContext: ctx, viewport: viewport }).then(
+				function() {
+					if (callback)
+						callback(true);
+				},
+				function() {
+					if (callback)
+						callback(false);
+				}
+			);
+		});
+	};
+
+	$scope.zoomIn = function() {
+		$scope.scale *= 1.2;
+		$scope.renderPage($scope.pageNum, null);
+	};
+
+	$scope.zoomOut = function() {
+		$scope.scale /= 1.2;
+		$scope.renderPage($scope.pageNum, null);
+	};
+
+	$scope.gotoPrev = function() {
+		if ($scope.pageNum > 1) {
+			$scope.pageNum--;
+			$scope.renderPage($scope.pageNum, null);
+		}
+	};
+
+	$scope.gotoNext = function() {
+		if ($scope.pageNum < $scope.pdfDoc.numPages) {
+			$scope.pageNum++;
+			$scope.renderPage($scope.pageNum, null);
+		}
+	};
+
+	$scope.loadPDF("/userdata/" + $scope.id + ".pdf");
 }]);
 
 satsumaApp.controller('LoginCtrl', [ '$scope', '$http', '$rootScope', function($scope, $http, $rootScope) {
