@@ -145,4 +145,7 @@ satsumaApp.controller('MainCtrl', ['$scope', '$http', '$rootScope', function($sc
 		$scope.showUpload = true;
 	};
 
+	if ($rootScope.loggedIn) {
+		$scope.getUploads();
+	}
 }]);
