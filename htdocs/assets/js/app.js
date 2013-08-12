@@ -46,17 +46,37 @@ satsumaApp.config(['$routeProvider', '$locationProvider', function($routeProvide
 		// TODO: configure routes
 		$locationProvider.html5Mode(true);
 
-		$routeProvider.when('/', { controller: 'MainCtrl' });
+		$routeProvider.when('/', { templateUrl: '/assets/partials/main.html', controller: 'MainCtrl' });
+		$routeProvider.when('/v/:id', { templateUrl: '/assets/partials/pdfviewer.html', controller: 'PDFViewCtrl' });
 
 		$routeProvider.otherwise({ redirectTo: '/' });
 	}
 ]);
 
-satsumaApp.controller('MainCtrl', ['$scope', '$http', function($scope, $http) {
+satsumaApp.controller('PDFViewCtrl', [ '$scope', '$routeParams', function($scope, $routeParams) {
+	console.log('PDFViewCtrl: new instance. id = ' + $routeParams.id);
 
-	$scope.loggedIn = false;
+	// TODO: implement
+
+}]);
+
+satsumaApp.controller('LoginCtrl', [ '$scope', '$http', '$rootScope', function($scope, $http, $rootScope) {
+	$rootScope.checkedLoggedIn = false;
+	$rootScope.loggedIn = false;
+
+	$http.get('/api/logged_in').
+	success(function(data, status, headers, config) {
+		$rootScope.checkedLoggedIn = true;
+		$rootScope.loggedIn = data.logged_in;
+	});
+}]);
+
+satsumaApp.controller('MainCtrl', ['$scope', '$http', '$rootScope', function($scope, $http, $rootScope) {
+	console.log('MainCtrl: new instance');
+
 	$scope.error = null;
 	$scope.uploads = [ ];
+	$scope.loading = false;
 
 	window.signinCallback = function(authData) {
 		$scope.error = null;
@@ -64,14 +84,16 @@ satsumaApp.controller('MainCtrl', ['$scope', '$http', function($scope, $http) {
 		if (authData['access_token']) {
 			$http.post('/api/connect', authData['code']).
 			success(function(data, status, headers, config) {
-				$scope.loggedIn = true;
+				$rootScope.loggedIn = true;
 				$scope.$broadcast("loggedIn");
 			}).
 			error(function(data, status, headers, config) {
 				$scope.error = "Signing in failed. Please try again later.";
 			});
 		} else if (authData['error']) {
-			$scope.error = "Signing in failed (" + authData['error'] + ").";
+			if (authData['error'] != "immediate_failed") {
+				$scope.error = "Signing in failed (" + authData['error'] + ").";
+			}
 		}
 		$scope.$apply();
 	};
@@ -81,9 +103,14 @@ satsumaApp.controller('MainCtrl', ['$scope', '$http', function($scope, $http) {
 	});
 
 	$scope.getUploads = function() {
+		$scope.loading = true;
 		$http.get('/api/getuploads').
 		success(function(data, status, headers, config) {
 			$scope.uploads = data;
+			$scope.loading = false;
+		}).
+		error(function() {
+			$scope.loading = false;
 		});
 	};
 
@@ -94,10 +121,10 @@ satsumaApp.controller('MainCtrl', ['$scope', '$http', function($scope, $http) {
 	$scope.signOut = function() {
 		$http.post('/api/disconnect').
 		success(function(data, status, headers, config) {
-			$scope.loggedIn = false;
+			$rootScope.loggedIn = false;
 		}).
 		error(function(data, status, headers, config) {
-			$scope.loggedIn = false;
+			$rootScope.loggedIn = false;
 			console.log('disconnect failed: ' + data);
 		});
 	};
@@ -117,4 +144,5 @@ satsumaApp.controller('MainCtrl', ['$scope', '$http', function($scope, $http) {
 	$scope.openUpload = function() {
 		$scope.showUpload = true;
 	};
+
 }]);

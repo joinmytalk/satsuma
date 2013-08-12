@@ -174,3 +174,25 @@ func Disconnect(w http.ResponseWriter, r *http.Request) {
 	session.Values["accessToken"] = nil
 	session.Save(r, w)
 }
+
+func LoggedIn(w http.ResponseWriter, r *http.Request) {
+	jsonEncoder := json.NewEncoder(w)
+	session, err := store.Get(r, SESSION_NAME)
+	if err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		jsonEncoder.Encode(map[string]bool{"logged_in": false})
+		xlog.Error("Error fetching session: %v", err)
+		return
+	}
+
+	loggedIn := false
+	token := session.Values["accessToken"]
+	if token == nil {
+		loggedIn = false
+	} else {
+		loggedIn = true
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	jsonEncoder.Encode(map[string]bool{"logged_in": loggedIn})
+}
