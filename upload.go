@@ -15,6 +15,11 @@ func Upload(w http.ResponseWriter, r *http.Request) {
 	session, _ := store.Get(r, SESSION_NAME)
 	xlog.Debugf("Session: %#v", session.Values)
 
+	if session.Values["gplusID"] == nil {
+		http.Error(w, "authentication required", http.StatusForbidden)
+		return
+	}
+
 	if err := r.ParseMultipartForm(10 * 1024 * 1024); err != nil {
 		http.Error(w, "couldn't parse form", http.StatusInternalServerError)
 		return
@@ -49,6 +54,7 @@ func Upload(w http.ResponseWriter, r *http.Request) {
 	}); err != nil {
 		xlog.Errorf("Insert failed: %v", err)
 		http.Error(w, "insert failed", http.StatusInternalServerError)
+		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")

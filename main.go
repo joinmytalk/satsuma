@@ -56,18 +56,29 @@ func main() {
 	os.Mkdir(options.UploadDir, 0755)
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/api/logged_in", LoggedIn)
+
+	// API calls.
+	mux.HandleFunc("/api/loggedin", LoggedIn)
 	mux.HandleFunc("/api/connect", Connect)
 	mux.HandleFunc("/api/disconnect", Disconnect)
 	mux.HandleFunc("/api/upload", Upload)
 	mux.HandleFunc("/api/getuploads", GetUploads)
-	mux.HandleFunc("/v/", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, path.Join(options.HtdocsDir, "index.html"))
-	})
+	mux.HandleFunc("/api/startsession", StartSession)
+	mux.HandleFunc("/api/getsessions", GetSessions)
+
+	// deliver index.html for AngularJS routes.
+	mux.HandleFunc("/v/", DeliverIndex)
+	mux.HandleFunc("/s/", DeliverIndex)
+
+	// deliver static files from htdocs.
 	mux.Handle("/", http.FileServer(http.Dir(options.HtdocsDir)))
 
 	httpsrv := &http.Server{Handler: Logger(mux), Addr: options.Addr}
 	if err := httpsrv.ListenAndServe(); err != nil {
 		xlog.Fatalf("ListenAndServe: %v", err)
 	}
+}
+
+func DeliverIndex(w http.ResponseWriter, r *http.Request) {
+	http.ServeFile(w, r, path.Join(options.HtdocsDir, "index.html"))
 }

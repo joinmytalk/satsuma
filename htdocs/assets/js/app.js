@@ -141,7 +141,7 @@ satsumaApp.controller('LoginCtrl', [ '$scope', '$http', '$rootScope', function($
 	$rootScope.checkedLoggedIn = false;
 	$rootScope.loggedIn = false;
 
-	$http.get('/api/logged_in').
+	$http.get('/api/loggedin').
 	success(function(data, status, headers, config) {
 		$rootScope.checkedLoggedIn = true;
 		$rootScope.loggedIn = data.logged_in;
