@@ -3,17 +3,25 @@ package main
 import (
 	"encoding/json"
 	"github.com/joinmytalk/xlog"
+	"github.com/russross/meddler"
+	"github.com/surma-dump/gouuid"
 	"io"
-	"labix.org/v2/mgo/bson"
 	"net/http"
 	"os"
 	"path"
 	"time"
 )
 
-func Upload(w http.ResponseWriter, r *http.Request) {
+type Upload struct {
+	ID       int       `meddler:"id,pk" json:"-"`
+	Title    string    `meddler:"title" json:"title"`
+	PublicID string    `meddler:"public_id" json:"_id"`
+	Owner    string    `meddler:"owner" `
+	Uploaded time.Time `meddler:"uploaded"`
+}
+
+func DoUpload(w http.ResponseWriter, r *http.Request) {
 	session, _ := store.Get(r, SESSION_NAME)
-	xlog.Debugf("Session: %#v", session.Values)
 
 	if session.Values["gplusID"] == nil {
 		http.Error(w, "authentication required", http.StatusForbidden)
@@ -32,9 +40,9 @@ func Upload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id := bson.NewObjectId()
+	id := generateID()
 
-	filename := path.Join(options.UploadDir, id.Hex()+".pdf")
+	filename := path.Join(options.UploadDir, id+".pdf")
 	if f, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE, 0644); err != nil {
 		http.Error(w, "couldn't open file for writing", http.StatusInternalServerError)
 		return
@@ -46,11 +54,11 @@ func Upload(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if err := mongoDB.C("uploads").Insert(bson.M{
-		"_id":      id,
-		"owner":    session.Values["gplusID"],
-		"title":    title,
-		"uploaded": time.Now(),
+	if err := meddler.Insert(sqlDB, "uploads", &Upload{
+		PublicID: id,
+		Owner:    session.Values["gplusID"].(string),
+		Title:    title,
+		Uploaded: time.Now(),
 	}); err != nil {
 		xlog.Errorf("Insert failed: %v", err)
 		http.Error(w, "insert failed", http.StatusInternalServerError)
@@ -58,5 +66,9 @@ func Upload(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"id": id.Hex()})
+	json.NewEncoder(w).Encode(map[string]string{"id": id})
+}
+
+func generateID() string {
+	return gouuid.New().ShortString()
 }

@@ -1,10 +1,11 @@
 package main
 
 import (
+	"database/sql"
+	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/sessions"
 	"github.com/joinmytalk/xlog"
 	"github.com/voxelbrain/goptions"
-	"labix.org/v2/mgo"
 	"net/http"
 	"os"
 	"path"
@@ -28,13 +29,13 @@ type ClaimSet struct {
 
 var (
 	store   sessions.Store
-	mongoDB *mgo.Database
+	sqlDB   *sql.DB
 	options = struct {
 		Addr         string `goptions:"-L, --listen, description='Listen address'"`
 		CookieKey    string `goptions:"-k, --key, description='Secret key for cookie store', obligatory"`
 		ClientID     string `goptions:"--clientid, description='Client ID', obligatory"`
 		ClientSecret string `goptions:"--clientsecret, description='Client Secret', obligatory"`
-		MongoURL     string `goptions:"--mongodb, description='MongoDB connect string', obligatory"`
+		DSN          string `goptions:"--dsn, description='MySQL DSN string', obligatory"`
 		HtdocsDir    string `goptions:"--htdocs, description='htdocs directory', obligatory"`
 		UploadDir    string `goptions:"--uploaddir, description='Upload directory', obligatory"`
 	}{
@@ -45,23 +46,27 @@ var (
 func main() {
 	goptions.ParseAndFail(&options)
 
+	xlog.Debug("Creating cookie store...")
 	store = sessions.NewCookieStore([]byte(options.CookieKey))
 
-	mongoSession, err := mgo.Dial(options.MongoURL)
-	if err != nil {
-		xlog.Fatalf("mgo.Dial failed: %v", err)
+	xlog.Debugf("Connecting to database %s...", options.DSN)
+	if sqldb, err := sql.Open("mysql", options.DSN); err != nil {
+		xlog.Fatalf("sql.Open failed: %v", err)
+	} else {
+		sqlDB = sqldb
 	}
-	mongoDB = mongoSession.DB("")
 
+	xlog.Debugf("Creating upload directory %s...", options.UploadDir)
 	os.Mkdir(options.UploadDir, 0755)
 
+	xlog.Debugf("Setting up HTTP server...")
 	mux := http.NewServeMux()
 
 	// API calls.
 	mux.HandleFunc("/api/loggedin", LoggedIn)
 	mux.HandleFunc("/api/connect", Connect)
 	mux.HandleFunc("/api/disconnect", Disconnect)
-	mux.HandleFunc("/api/upload", Upload)
+	mux.HandleFunc("/api/upload", DoUpload)
 	mux.HandleFunc("/api/getuploads", GetUploads)
 	mux.HandleFunc("/api/startsession", StartSession)
 	mux.HandleFunc("/api/getsessions", GetSessions)
@@ -73,6 +78,7 @@ func main() {
 	// deliver static files from htdocs.
 	mux.Handle("/", http.FileServer(http.Dir(options.HtdocsDir)))
 
+	xlog.Debugf("Starting HTTP server on %s", options.Addr)
 	httpsrv := &http.Server{Handler: Logger(mux), Addr: options.Addr}
 	if err := httpsrv.ListenAndServe(); err != nil {
 		xlog.Fatalf("ListenAndServe: %v", err)
