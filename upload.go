@@ -15,7 +15,7 @@ import (
 type Upload struct {
 	ID       int       `meddler:"id,pk" json:"-"`
 	Title    string    `meddler:"title" json:"title"`
-	PublicID string    `meddler:"pubid" json:"_id"`
+	PublicID string    `meddler:"public_id" json:"_id"`
 	Owner    string    `meddler:"owner" `
 	Uploaded time.Time `meddler:"uploaded"`
 }
