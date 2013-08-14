@@ -36,7 +36,7 @@ func StartSession(w http.ResponseWriter, r *http.Request) {
 
 	var uploadEntry Upload
 
-	if err := meddler.QueryRow(sqlDB, &uploadEntry, "select id from uploads where upload_id = ? and owner = ?", data.UploadID, session.Values["gplusID"]); err != nil {
+	if err := meddler.QueryRow(sqlDB, &uploadEntry, "select id from uploads where public_id = ? and owner = ?", data.UploadID, session.Values["gplusID"]); err != nil {
 		xlog.Errorf("Querying upload %s failed: %v", data.UploadID, err)
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -66,18 +66,54 @@ func GetSessions(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var result []struct {
+	result := []*struct {
 		PublicID string    `meddler:"public_id" json:"_id"`
 		Title    string    `meddler:"title" json:"title"`
 		Started  time.Time `meddler:"started" json:"started"`
 		Ended    time.Time `meddler:"ended" json:"ended,omitempty"`
-	}
+	}{}
 
 	if err := meddler.QueryAll(sqlDB, &result, "select sessions.public_id as public_id, sessions.started as started, sessions.ended as ended, uploads.title as title  from uploads, sessions where sessions.upload_id = uploads.id and uploads.owner = ? order by sessions.started desc", session.Values["gplusID"]); err != nil {
 		xlog.Errorf("Querying sessions failed: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(result)
+}
+
+func SessionInfo(w http.ResponseWriter, r *http.Request) {
+	session, _ := store.Get(r, SESSION_NAME)
+
+	if session.Values["gplusID"] == nil {
+		http.Error(w, "authentication required", http.StatusForbidden)
+		return
+	}
+
+	id := r.URL.Query().Get(":id")
+
+	result := struct {
+		Title    string `meddler:"title" json:"title"`
+		UploadID string `meddler:"public_id" json:"upload_id"`
+		IsOwner  bool   `json:"owner" meddler:"-"`
+		Owner    string `meddler:"owner" json:"-"`
+		//Page int `json:"page"`
+	}{}
+
+	if err := meddler.QueryRow(sqlDB, &result,
+		`SELECT 
+			uploads.title AS title, 
+			uploads.public_id AS public_id, 
+			uploads.owner AS owner
+			FROM uploads, sessions
+			WHERE sessions.upload_id = uploads.id AND
+				sessions.public_id = ?`, id); err != nil {
+		xlog.Errorf("Loading session information failed: %v", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	result.IsOwner = (result.Owner == session.Values["gplusID"].(string))
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(result)

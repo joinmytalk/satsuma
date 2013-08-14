@@ -41,6 +41,8 @@
 	<g+signin clientid="605861013997"></g+signin>
 </div>
 <div ng-show="loggedIn">
+
+	<!-- upload form -->
 	<button class="btn btn-primary" ng-click="openUpload()" ng-hide="showUpload">Upload Presentation</button>
 	<form ng-upload action="/api/upload" class="form-horizontal" ng-show="showUpload" id="upload_form">
 		<legend>Upload Presentation</legend>
@@ -63,14 +65,29 @@
 			</div>
 		</div>
 	</form>
+
+	<!-- presentation list -->
 	<h3>Your Presentations</h3>
 	<table class="table table-bordered" ng-show="uploads.length > 0">
-		<tr><th>Title</th><th>Link</th></tr>
+		<tr><th>Title</th><th>Link</th><th>Actions</th></tr>
 		<tr ng-repeat="upload in uploads">
 			<td><a ng-href="/v/{{upload._id}}">{{upload.title}}</a></td>
 			<td><a ng-href="/userdata/{{upload._id}}.pdf" target="_blank">Download</a></td>
+			<td><button class="btn" ng-click="startSession(upload._id)">Start Session</button></td>
 		</tr>
 	</table>
-	<p ng-show="loading">Loading presentations...</p>
-	<p ng-show="uploads.length == 0 && !loading">You have no presentations uploaded.</p>
+	<p ng-show="loading_uploads">Loading presentations...</p>
+	<p ng-show="uploads.length == 0 && !loading_uploads">You have no presentations uploaded.</p>
+
+	<!-- session list -->
+	<h3>Your Sessions</h3>
+	<table class="table table-bordered" ng-show="sessions.length > 0">
+		<tr><th>Title</th><th>Started</th></tr>
+		<tr ng-repeat="session in sessions">
+			<td><a ng-href="/s/{{session._id}}">{{session.title}}</a></td>
+			<td>{{session.started}}</td>
+		</tr>
+	</table>
+	<p ng-show="loading_sessions">Loading sessions...</p>
+	<p ng-show="sessions.length == 0 && !loading_sessions">You have no active sessions.</p>
 </div>

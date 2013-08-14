@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/gorilla/pat"
 	"github.com/gorilla/sessions"
 	"github.com/joinmytalk/xlog"
 	"github.com/voxelbrain/goptions"
@@ -63,13 +64,16 @@ func main() {
 	mux := http.NewServeMux()
 
 	// API calls.
-	mux.HandleFunc("/api/loggedin", LoggedIn)
-	mux.HandleFunc("/api/connect", Connect)
-	mux.HandleFunc("/api/disconnect", Disconnect)
-	mux.HandleFunc("/api/upload", DoUpload)
-	mux.HandleFunc("/api/getuploads", GetUploads)
-	mux.HandleFunc("/api/startsession", StartSession)
-	mux.HandleFunc("/api/getsessions", GetSessions)
+	apiRouter := pat.New()
+	apiRouter.Get("/api/loggedin", http.HandlerFunc(LoggedIn))
+	apiRouter.Post("/api/connect", http.HandlerFunc(Connect))
+	apiRouter.Post("/api/disconnect", http.HandlerFunc(Disconnect))
+	apiRouter.Post("/api/upload", http.HandlerFunc(DoUpload))
+	apiRouter.Get("/api/getuploads", http.HandlerFunc(GetUploads))
+	apiRouter.Post("/api/startsession", http.HandlerFunc(StartSession))
+	apiRouter.Get("/api/getsessions", http.HandlerFunc(GetSessions))
+	apiRouter.Get("/api/sessioninfo/{id}", http.HandlerFunc(SessionInfo))
+	mux.Handle("/api/", apiRouter)
 
 	// deliver index.html for AngularJS routes.
 	mux.HandleFunc("/v/", DeliverIndex)
