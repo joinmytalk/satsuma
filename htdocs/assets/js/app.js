@@ -224,6 +224,16 @@ satsumaApp.controller('MainCtrl', ['$scope', '$http', '$rootScope', function($sc
 		});
 	};
 
+	$scope.deleteUpload = function(uploadID) {
+		$http.post('/api/delupload', { 'upload_id': uploadID }).
+		success(function(data, status, headers, config) {
+			$scope.getUploads();
+		}).
+		error(function() {
+			console.log('deleting upload failed');
+		});
+	};
+
 	$scope.getSessions = function() {
 		$scope.loading_sessions = true;
 		$http.get('/api/getsessions').
@@ -243,6 +253,26 @@ satsumaApp.controller('MainCtrl', ['$scope', '$http', '$rootScope', function($sc
 		}).
 		error(function() {
 			console.log('starting session failed');
+		});
+	};
+
+	$scope.stopSession = function(sessionID) {
+		$http.post('/api/stopsession', { "session_id": sessionID }).
+		success(function(data, status, headers, config) {
+			$scope.getSessions();
+		}).
+		error(function() {
+			console.log('stopping session failed');
+		});
+	};
+
+	$scope.deleteSession = function(sessionID) {
+		$http.post('/api/delsession', { "session_id": sessionID }).
+		success(function(data, status, headers, config) {
+			$scope.getSessions();
+		}).
+		error(function() {
+			console.log('stopping session failed');
 		});
 	};
 

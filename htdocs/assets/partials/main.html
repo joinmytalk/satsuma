@@ -73,7 +73,10 @@
 		<tr ng-repeat="upload in uploads">
 			<td><a ng-href="/v/{{upload._id}}">{{upload.title}}</a></td>
 			<td><a ng-href="/userdata/{{upload._id}}.pdf" target="_blank">Download</a></td>
-			<td><button class="btn" ng-click="startSession(upload._id)">Start Session</button></td>
+			<td>
+				<button class="btn" ng-click="startSession(upload._id)">Start Session</button>
+				<button class="btn" ng-click="deleteUpload(upload._id)">Delete Presentation</button>
+			</td>
 		</tr>
 	</table>
 	<p ng-show="loading_uploads">Loading presentations...</p>
@@ -82,10 +85,15 @@
 	<!-- session list -->
 	<h3>Your Sessions</h3>
 	<table class="table table-bordered" ng-show="sessions.length > 0">
-		<tr><th>Title</th><th>Started</th></tr>
+		<tr><th>Title</th><th>Started</th><th>Ended</th><th>Actions</th></tr>
 		<tr ng-repeat="session in sessions">
 			<td><a ng-href="/s/{{session._id}}">{{session.title}}</a></td>
 			<td>{{session.started}}</td>
+			<td>{{session.ended}}</td>
+			<td>
+				<button class="btn" ng-click="stopSession(session._id)" ng-show="!session.ended">Stop Session</button>
+				<button class="btn" ng-click="deleteSession(session._id)" ng-show="session.ended">Delete Session</button>
+			</td>
 		</tr>
 	</table>
 	<p ng-show="loading_sessions">Loading sessions...</p>

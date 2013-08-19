@@ -118,3 +118,75 @@ func SessionInfo(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(result)
 }
+
+func StopSession(w http.ResponseWriter, r *http.Request) {
+	session, _ := store.Get(r, SESSION_NAME)
+
+	if session.Values["gplusID"] == nil {
+		http.Error(w, "authentication required", http.StatusForbidden)
+		return
+	}
+
+	requestData := struct {
+		PublicID string `json:"session_id"`
+	}{}
+
+	if err := json.NewDecoder(r.Body).Decode(&requestData); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	ownerData := struct {
+		Owner string `json:"owner"`
+	}{}
+
+	if err := meddler.QueryRow(sqlDB, &ownerData, "SELECT uploads.owner AS owner FROM uploads, sessions WHERE sessions.public_id = ? AND sessions.upload_id = uploads.id LIMIT 1", requestData.PublicID); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if ownerData.Owner != session.Values["gplusID"].(string) {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	sqlDB.Exec("UPDATE sessions SET ended = NOW() WHERE public_id = ?", requestData.PublicID)
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func DeleteSession(w http.ResponseWriter, r *http.Request) {
+	session, _ := store.Get(r, SESSION_NAME)
+
+	if session.Values["gplusID"] == nil {
+		http.Error(w, "authentication required", http.StatusForbidden)
+		return
+	}
+
+	requestData := struct {
+		PublicID string `json:"session_id"`
+	}{}
+
+	if err := json.NewDecoder(r.Body).Decode(&requestData); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	ownerData := struct {
+		Owner string `json:"owner"`
+	}{}
+
+	if err := meddler.QueryRow(sqlDB, &ownerData, "SELECT uploads.owner AS owner FROM uploads, sessions WHERE sessions.public_id = ? AND sessions.upload_id = uploads.id LIMIT 1", requestData.PublicID); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if ownerData.Owner != session.Values["gplusID"].(string) {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	sqlDB.Exec("DELETE FROM sessions WHERE public_id = ?", requestData.PublicID)
+
+	w.WriteHeader(http.StatusNoContent)
+}

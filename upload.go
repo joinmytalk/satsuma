@@ -69,6 +69,35 @@ func DoUpload(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]string{"id": id})
 }
 
+func DeleteUpload(w http.ResponseWriter, r *http.Request) {
+	session, _ := store.Get(r, SESSION_NAME)
+
+	if session.Values["gplusID"] == nil {
+		http.Error(w, "authentication required", http.StatusForbidden)
+		return
+	}
+
+	requestData := struct {
+		UploadID string `json:"upload_id"`
+	}{}
+
+	if err := json.NewDecoder(r.Body).Decode(&requestData); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	result, err := sqlDB.Exec("DELETE FROM uploads WHERE public_id = ? AND owner = ?", requestData.UploadID, session.Values["gplusID"].(string))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+
+	if rowsAffected, err := result.RowsAffected(); err == nil && rowsAffected != 0 {
+		os.Remove(path.Join(options.UploadDir, requestData.UploadID+".pdf"))
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func generateID() string {
 	return gouuid.New().ShortString()
 }
