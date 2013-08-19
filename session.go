@@ -67,16 +67,25 @@ func GetSessions(w http.ResponseWriter, r *http.Request) {
 	}
 
 	result := []*struct {
-		PublicID string    `meddler:"public_id" json:"_id"`
-		Title    string    `meddler:"title" json:"title"`
-		Started  time.Time `meddler:"started,utctimez" json:"started"`
-		Ended    time.Time `meddler:"ended,utctimez" json:"ended,omitempty"`
+		PublicID  string    `meddler:"public_id" json:"_id"`
+		Title     string    `meddler:"title" json:"title"`
+		Started   time.Time `meddler:"started,utctimez" json:"started"`
+		Ended     time.Time `meddler:"ended,utctimez" json:"-"`
+		EndedJSON string    `meddler:"-" json:"ended,omitempty"`
 	}{}
 
 	if err := meddler.QueryAll(sqlDB, &result, "select sessions.public_id as public_id, sessions.started as started, sessions.ended as ended, uploads.title as title  from uploads, sessions where sessions.upload_id = uploads.id and uploads.owner = ? order by sessions.started desc", session.Values["gplusID"]); err != nil {
 		xlog.Errorf("Querying sessions failed: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
+	}
+
+	// XXX: ugly hack.
+	for _, entry := range result {
+		formatted := entry.Ended.Format(time.RFC3339)
+		if formatted != "0001-01-01T00:00:00Z" {
+			entry.EndedJSON = formatted
+		}
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -137,7 +146,7 @@ func StopSession(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ownerData := struct {
-		Owner string `json:"owner"`
+		Owner string `meddler:"owner"`
 	}{}
 
 	if err := meddler.QueryRow(sqlDB, &ownerData, "SELECT uploads.owner AS owner FROM uploads, sessions WHERE sessions.public_id = ? AND sessions.upload_id = uploads.id LIMIT 1", requestData.PublicID); err != nil {
