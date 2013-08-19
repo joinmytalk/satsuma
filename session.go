@@ -12,8 +12,8 @@ type Session struct {
 	ID       int       `meddler:"id,pk" json:"-"`
 	UploadID int       `meddler:"upload_id" json:"-"`
 	PublicID string    `meddler:"public_id" json:"_id"`
-	Started  time.Time `meddler:"started" json:"started"`
-	Ended    time.Time `meddler:"ended" json:"ended,omitempty"`
+	Started  time.Time `meddler:"started,utctimez" json:"started"`
+	Ended    time.Time `meddler:"ended,utctimez" json:"ended,omitempty"`
 }
 
 func StartSession(w http.ResponseWriter, r *http.Request) {
@@ -69,8 +69,8 @@ func GetSessions(w http.ResponseWriter, r *http.Request) {
 	result := []*struct {
 		PublicID string    `meddler:"public_id" json:"_id"`
 		Title    string    `meddler:"title" json:"title"`
-		Started  time.Time `meddler:"started" json:"started"`
-		Ended    time.Time `meddler:"ended" json:"ended,omitempty"`
+		Started  time.Time `meddler:"started,utctimez" json:"started"`
+		Ended    time.Time `meddler:"ended,utctimez" json:"ended,omitempty"`
 	}{}
 
 	if err := meddler.QueryAll(sqlDB, &result, "select sessions.public_id as public_id, sessions.started as started, sessions.ended as ended, uploads.title as title  from uploads, sessions where sessions.upload_id = uploads.id and uploads.owner = ? order by sessions.started desc", session.Values["gplusID"]); err != nil {
@@ -117,4 +117,76 @@ func SessionInfo(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(result)
+}
+
+func StopSession(w http.ResponseWriter, r *http.Request) {
+	session, _ := store.Get(r, SESSION_NAME)
+
+	if session.Values["gplusID"] == nil {
+		http.Error(w, "authentication required", http.StatusForbidden)
+		return
+	}
+
+	requestData := struct {
+		PublicID string `json:"session_id"`
+	}{}
+
+	if err := json.NewDecoder(r.Body).Decode(&requestData); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	ownerData := struct {
+		Owner string `json:"owner"`
+	}{}
+
+	if err := meddler.QueryRow(sqlDB, &ownerData, "SELECT uploads.owner AS owner FROM uploads, sessions WHERE sessions.public_id = ? AND sessions.upload_id = uploads.id LIMIT 1", requestData.PublicID); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if ownerData.Owner != session.Values["gplusID"].(string) {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	sqlDB.Exec("UPDATE sessions SET ended = NOW() WHERE public_id = ?", requestData.PublicID)
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func DeleteSession(w http.ResponseWriter, r *http.Request) {
+	session, _ := store.Get(r, SESSION_NAME)
+
+	if session.Values["gplusID"] == nil {
+		http.Error(w, "authentication required", http.StatusForbidden)
+		return
+	}
+
+	requestData := struct {
+		PublicID string `json:"session_id"`
+	}{}
+
+	if err := json.NewDecoder(r.Body).Decode(&requestData); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	ownerData := struct {
+		Owner string `meddler:"owner"`
+	}{}
+
+	if err := meddler.QueryRow(sqlDB, &ownerData, "SELECT uploads.owner AS owner FROM uploads, sessions WHERE sessions.public_id = ? AND sessions.upload_id = uploads.id LIMIT 1", requestData.PublicID); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if ownerData.Owner != session.Values["gplusID"].(string) {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	sqlDB.Exec("DELETE FROM sessions WHERE public_id = ?", requestData.PublicID)
+
+	w.WriteHeader(http.StatusNoContent)
 }
