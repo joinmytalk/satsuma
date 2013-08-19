@@ -107,7 +107,7 @@ func SessionInfo(w http.ResponseWriter, r *http.Request) {
 		UploadID string `meddler:"public_id" json:"upload_id"`
 		IsOwner  bool   `json:"owner" meddler:"-"`
 		Owner    string `meddler:"owner" json:"-"`
-		//Page int `json:"page"`
+		Page     int    `meddler:"page" json:"page"`
 	}{}
 
 	if err := meddler.QueryRow(sqlDB, &result,
@@ -123,6 +123,21 @@ func SessionInfo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	result.IsOwner = (result.Owner == session.Values["gplusID"].(string))
+
+	xlog.Debugf("SessionInfo: retrieved basic data")
+
+	if err := meddler.QueryRow(sqlDB, &result,
+		`SELECT 
+			commands.page AS page
+			FROM commands, sessions
+			WHERE sessions.id = commands.session_id AND
+				sessions.public_id = ?
+			ORDER BY commands.timestamp DESC LIMIT 1`, id); err != nil {
+		xlog.Errorf("Finding current page for session failed: %v", err)
+		result.Page = 1
+	}
+
+	xlog.Debugf("SessionInfo: retrieved current page")
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(result)

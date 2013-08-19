@@ -130,6 +130,7 @@ satsumaApp.controller('PDFViewCtrl', [ '$scope', '$routeParams', '$http', functi
 	$scope.gotoPrev = function() {
 		if ($scope.pageNum > 1) {
 			$scope.pageNum--;
+			$scope.sendCmd({"cmd": "gotoPage", "page": $scope.pageNum});
 			$scope.renderPage($scope.pageNum, null);
 		}
 	};
@@ -137,8 +138,24 @@ satsumaApp.controller('PDFViewCtrl', [ '$scope', '$routeParams', '$http', functi
 	$scope.gotoNext = function() {
 		if ($scope.pageNum < $scope.pdfDoc.numPages) {
 			$scope.pageNum++;
+			$scope.sendCmd({"cmd": "gotoPage", "page": $scope.pageNum});
 			$scope.renderPage($scope.pageNum, null);
 		}
+	};
+
+	$scope.sendCmd = function(data) {
+		var jsonData = JSON.stringify(data);
+		console.log('sendCmd: ' + jsonData);
+		if ($scope.wsSend) {
+			console.log('sendCmd: sending data');
+			$scope.ws.send(jsonData);
+		}
+	};
+
+	$scope.openWebSocketMaster = function() {
+		console.log('WebSocket: onopen for master called');
+		$scope.ws.send(JSON.stringify({"session_id": $scope.sessionId}));
+		$scope.wsSend = true;
 	};
 
 	switch ($scope.type) {
@@ -152,15 +169,13 @@ satsumaApp.controller('PDFViewCtrl', [ '$scope', '$routeParams', '$http', functi
 			$scope.title = data.title;
 			$scope.id = data.upload_id;
 			$scope.owner = data.owner;
-			/*
 			if (data.page) {
 				$scope.pageNum = data.page;
 			}
-			*/
 			$scope.loadPDF("/userdata/" + $scope.id + ".pdf");
 			if ($scope.owner) {
-				console.log('TODO: connect WebSocket');
-				// TODO: connect to WebSocket.
+				$scope.ws = new WebSocket("ws://" + window.location.host + "/api/ws");
+				$scope.ws.onopen = $scope.openWebSocketMaster;
 			}
 		});
 		break;

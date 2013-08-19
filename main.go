@@ -1,6 +1,7 @@
 package main
 
 import (
+	"code.google.com/p/go.net/websocket"
 	"database/sql"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/pat"
@@ -76,6 +77,7 @@ func main() {
 	apiRouter.Post("/api/delsession", http.HandlerFunc(DeleteSession))
 	apiRouter.Get("/api/getsessions", http.HandlerFunc(GetSessions))
 	apiRouter.Get("/api/sessioninfo/{id}", http.HandlerFunc(SessionInfo))
+	mux.Handle("/api/ws", websocket.Handler(WebsocketHandler))
 	mux.Handle("/api/", apiRouter)
 
 	// deliver index.html for AngularJS routes.
