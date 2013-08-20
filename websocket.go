@@ -2,6 +2,9 @@ package main
 
 import (
 	"code.google.com/p/go.net/websocket"
+	"encoding/json"
+	"fmt"
+	"github.com/garyburd/redigo/redis"
 	"github.com/joinmytalk/xlog"
 	"github.com/russross/meddler"
 	"time"
@@ -54,22 +57,47 @@ type Command struct {
 
 func slaveHandler(s *websocket.Conn, sessionID int) {
 	xlog.Debugf("entering SlaveHandler")
-	cmdChan := make(chan Command)
-	registerCommandChannel(sessionID, cmdChan)
-	defer unregisterCommandChannel(sessionID, cmdChan)
-	for cmd := range cmdChan {
-		if cmd.Cmd == "close" {
-			return
-		}
-		if err := websocket.JSON.Send(s, cmd); err != nil {
-			xlog.Errorf("slaveHandler: JSON.Send failed: %v", err)
-			return
+	c, err := redis.Dial("tcp", options.RedisAddr)
+	if err != nil {
+		xlog.Errorf("redis.Dial failed: %v", err)
+		return
+	}
+	defer c.Close()
+
+	psc := redis.PubSubConn{c}
+	topic := fmt.Sprintf("session.%d", sessionID)
+	psc.Subscribe(topic)
+	defer psc.Unsubscribe(topic)
+
+	for {
+		switch v := psc.Receive().(type) {
+		case redis.Message:
+			var cmd Command
+			if err := json.Unmarshal(v.Data, &cmd); err != nil {
+				break
+			}
+			if err := websocket.JSON.Send(s, cmd); err != nil {
+				xlog.Errorf("slaveHandler: JSON.Send failed: %v", err)
+				return
+			}
+			if cmd.Cmd == "close" {
+				return
+			}
+		case redis.Subscription:
+			xlog.Debugf("mkay... redis.Subscription received: %#v", v)
 		}
 	}
 }
 
 func masterHandler(s *websocket.Conn, sessionID int) {
 	xlog.Debugf("entering MasterHandler")
+	c, err := redis.Dial("tcp", options.RedisAddr)
+	if err != nil {
+		xlog.Errorf("redis.Dial failed: %v", err)
+		return
+	}
+	defer c.Close()
+
 	for {
 		var cmd Command
 		if err := websocket.JSON.Receive(s, &cmd); err != nil {
@@ -87,53 +115,10 @@ func masterHandler(s *websocket.Conn, sessionID int) {
 			break
 		}
 
-		broadcastCommand(cmd)
+		cmdJSON, _ := json.Marshal(cmd)
+
+		c.Send("PUBLISH", fmt.Sprintf("session.%d", sessionID), string(cmdJSON))
+		c.Flush()
 	}
-	xlog.Infof("masterHandler: closing connection")
-}
-
-type CommandChannels map[chan Command]struct{}
-type Sessions map[int]CommandChannels
-
-var sessionSlaves = make(Sessions)
-var sessionChans = make(map[int]chan Command)
-
-func broadcastCommand(cmd Command) {
-	cmdChan, ok := sessionChans[cmd.SessionID]
-	if !ok {
-		cmdChan = make(chan Command)
-		sessionChans[cmd.SessionID] = cmdChan
-		go dispatch(cmd.SessionID)
-	}
-	cmdChan <- cmd
-}
-
-func dispatch(sessionID int) {
-	ch := sessionChans[sessionID]
-	for cmd := range ch {
-		chans := sessionSlaves[sessionID]
-		for slaveChan, _ := range chans {
-			slaveChan <- cmd
-		}
-		if cmd.Cmd == "close" {
-			close(ch)
-			return
-		}
-	}
-}
-
-func registerCommandChannel(sessionID int, cmdChan chan Command) {
-	channels, ok := sessionSlaves[sessionID]
-	if !ok {
-		channels = make(CommandChannels)
-		sessionSlaves[sessionID] = channels
-	}
-
-	channels[cmdChan] = struct{}{}
-}
-
-func unregisterCommandChannel(sessionID int, cmdChan chan Command) {
-	if channels, ok := sessionSlaves[sessionID]; ok {
-		delete(channels, cmdChan)
-	}
+	xlog.Debugf("masterHandler: closing connection")
 }

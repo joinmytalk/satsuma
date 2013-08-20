@@ -40,8 +40,10 @@ var (
 		DSN          string `goptions:"--dsn, description='MySQL DSN string', obligatory"`
 		HtdocsDir    string `goptions:"--htdocs, description='htdocs directory', obligatory"`
 		UploadDir    string `goptions:"--uploaddir, description='Upload directory', obligatory"`
+		RedisAddr    string `goptions:"--redis, description='redis address', obligatory"`
 	}{
-		Addr: "[::]:8080",
+		Addr:      "[::]:8080",
+		RedisAddr: ":6379",
 	}
 )
 
