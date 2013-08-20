@@ -53,10 +53,23 @@ type Command struct {
 }
 
 func slaveHandler(s *websocket.Conn, sessionID int) {
-	// TODO: implement
+	xlog.Debugf("entering SlaveHandler")
+	cmdChan := make(chan Command)
+	registerCommandChannel(sessionID, cmdChan)
+	defer unregisterCommandChannel(sessionID, cmdChan)
+	for cmd := range cmdChan {
+		if cmd.Cmd == "close" {
+			return
+		}
+		if err := websocket.JSON.Send(s, cmd); err != nil {
+			xlog.Errorf("slaveHandler: JSON.Send failed: %v", err)
+			return
+		}
+	}
 }
 
 func masterHandler(s *websocket.Conn, sessionID int) {
+	xlog.Debugf("entering MasterHandler")
 	for {
 		var cmd Command
 		if err := websocket.JSON.Receive(s, &cmd); err != nil {
@@ -74,7 +87,53 @@ func masterHandler(s *websocket.Conn, sessionID int) {
 			break
 		}
 
-		// TODO: broadcast to all slaves.
+		broadcastCommand(cmd)
 	}
 	xlog.Infof("masterHandler: closing connection")
+}
+
+type CommandChannels map[chan Command]struct{}
+type Sessions map[int]CommandChannels
+
+var sessionSlaves = make(Sessions)
+var sessionChans = make(map[int]chan Command)
+
+func broadcastCommand(cmd Command) {
+	cmdChan, ok := sessionChans[cmd.SessionID]
+	if !ok {
+		cmdChan = make(chan Command)
+		sessionChans[cmd.SessionID] = cmdChan
+		go dispatch(cmd.SessionID)
+	}
+	cmdChan <- cmd
+}
+
+func dispatch(sessionID int) {
+	ch := sessionChans[sessionID]
+	for cmd := range ch {
+		chans := sessionSlaves[sessionID]
+		for slaveChan, _ := range chans {
+			slaveChan <- cmd
+		}
+		if cmd.Cmd == "close" {
+			close(ch)
+			return
+		}
+	}
+}
+
+func registerCommandChannel(sessionID int, cmdChan chan Command) {
+	channels, ok := sessionSlaves[sessionID]
+	if !ok {
+		channels = make(CommandChannels)
+		sessionSlaves[sessionID] = channels
+	}
+
+	channels[cmdChan] = struct{}{}
+}
+
+func unregisterCommandChannel(sessionID int, cmdChan chan Command) {
+	if channels, ok := sessionSlaves[sessionID]; ok {
+		delete(channels, cmdChan)
+	}
 }

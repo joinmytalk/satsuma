@@ -143,6 +143,11 @@ satsumaApp.controller('PDFViewCtrl', [ '$scope', '$routeParams', '$http', functi
 		}
 	};
 
+	$scope.gotoPage = function(page) {
+		$scope.pageNum = page;
+		$scope.renderPage($scope.pageNum, null);
+	};
+
 	$scope.sendCmd = function(data) {
 		var jsonData = JSON.stringify(data);
 		console.log('sendCmd: ' + jsonData);
@@ -158,6 +163,24 @@ satsumaApp.controller('PDFViewCtrl', [ '$scope', '$routeParams', '$http', functi
 		$scope.wsSend = true;
 	};
 
+	$scope.openWebSocketSlave = function() {
+		console.log('WebSocket: onopen for slave called');
+		$scope.ws.send(JSON.stringify({"session_id": $scope.sessionId}));
+	};
+
+	$scope.onMessageSlave = function(evt) {
+		console.log('onMessageSlave: received message from server');
+		var data = JSON.parse(evt.data);
+		switch (data.cmd) {
+			case "gotoPage":
+				$scope.gotoPage(data.page);
+				break;
+			default:
+				console.log('unknown/unimplemented command ' + data.cmd);
+		}
+		console.log(data);
+	};
+
 	switch ($scope.type) {
 	case "viewer":
 		// TODO: fetch information.
@@ -166,6 +189,7 @@ satsumaApp.controller('PDFViewCtrl', [ '$scope', '$routeParams', '$http', functi
 	case "session":
 		$http.get('/api/sessioninfo/' + $scope.sessionId).
 		success(function(data, status, header, config) {
+			console.log('session info: ', data);
 			$scope.title = data.title;
 			$scope.id = data.upload_id;
 			$scope.owner = data.owner;
@@ -173,9 +197,16 @@ satsumaApp.controller('PDFViewCtrl', [ '$scope', '$routeParams', '$http', functi
 				$scope.pageNum = data.page;
 			}
 			$scope.loadPDF("/userdata/" + $scope.id + ".pdf");
+			var wsURL = "ws://" + window.location.host + "/api/ws";
+			console.log('Opening WebSocket to ' + wsURL);
+			$scope.ws = new WebSocket(wsURL);
 			if ($scope.owner) {
-				$scope.ws = new WebSocket("ws://" + window.location.host + "/api/ws");
+				console.log('setting onopen to openWebSocketMaster');
 				$scope.ws.onopen = $scope.openWebSocketMaster;
+			} else {
+				console.log('setting onmessage to onMessageSlave');
+				$scope.ws.onopen = $scope.openWebSocketSlave;
+				$scope.ws.onmessage = $scope.onMessageSlave;
 			}
 		});
 		break;

@@ -95,9 +95,9 @@ func GetSessions(w http.ResponseWriter, r *http.Request) {
 func SessionInfo(w http.ResponseWriter, r *http.Request) {
 	session, _ := store.Get(r, SESSION_NAME)
 
-	if session.Values["gplusID"] == nil {
-		http.Error(w, "authentication required", http.StatusForbidden)
-		return
+	gplusID := ""
+	if session.Values["gplusID"] != nil {
+		gplusID = session.Values["gplusID"].(string)
 	}
 
 	id := r.URL.Query().Get(":id")
@@ -122,7 +122,7 @@ func SessionInfo(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	result.IsOwner = (result.Owner == session.Values["gplusID"].(string))
+	result.IsOwner = (result.Owner == gplusID)
 
 	xlog.Debugf("SessionInfo: retrieved basic data")
 
