@@ -13,6 +13,9 @@
 				<a class="btn" ng-click="gotoPrev()" title="Previous slide"><i class="icon-backward"></i></a>
 				<a class="btn" ng-click="gotoNext()" title="Next slide"><i class="icon-forward"></i></a>
 			</div>
+			<div class="btn-group" ng-show="owner && type == 'session'">
+				<a class="btn" ng-click="clearSlide()" title="Clear slide">Clear</a>
+			</div>
 		</div>
 		<div class="row">
 			<div class="span12 progress progress-striped active" ng-show="loadProgress > 0">

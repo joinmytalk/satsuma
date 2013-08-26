@@ -95,19 +95,20 @@ func GetSessions(w http.ResponseWriter, r *http.Request) {
 func SessionInfo(w http.ResponseWriter, r *http.Request) {
 	session, _ := store.Get(r, SESSION_NAME)
 
-	if session.Values["gplusID"] == nil {
-		http.Error(w, "authentication required", http.StatusForbidden)
-		return
+	gplusID := ""
+	if session.Values["gplusID"] != nil {
+		gplusID = session.Values["gplusID"].(string)
 	}
 
 	id := r.URL.Query().Get(":id")
 
 	result := struct {
-		Title    string `meddler:"title" json:"title"`
-		UploadID string `meddler:"public_id" json:"upload_id"`
-		IsOwner  bool   `json:"owner" meddler:"-"`
-		Owner    string `meddler:"owner" json:"-"`
-		//Page int `json:"page"`
+		Title    string     `meddler:"title" json:"title"`
+		UploadID string     `meddler:"public_id" json:"upload_id"`
+		IsOwner  bool       `json:"owner" meddler:"-"`
+		Owner    string     `meddler:"owner" json:"-"`
+		Page     int        `meddler:"page" json:"page"`
+		Cmds     []*Command `meddler:"-" json:"cmds"`
 	}{}
 
 	if err := meddler.QueryRow(sqlDB, &result,
@@ -122,7 +123,35 @@ func SessionInfo(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	result.IsOwner = (result.Owner == session.Values["gplusID"].(string))
+	result.IsOwner = (result.Owner == gplusID)
+
+	xlog.Debugf("SessionInfo: retrieved basic data")
+
+	if err := meddler.QueryRow(sqlDB, &result,
+		`SELECT 
+			commands.page AS page
+			FROM commands, sessions
+			WHERE sessions.id = commands.session_id AND
+				sessions.public_id = ?
+			ORDER BY commands.timestamp DESC LIMIT 1`, id); err != nil {
+		xlog.Errorf("Finding current page for session failed: %v", err)
+		result.Page = 1
+	}
+
+	xlog.Debugf("SessionInfo: retrieved current page")
+
+	var cmds []*Command
+
+	if err := meddler.QueryAll(sqlDB, &cmds,
+		`SELECT
+			*
+			FROM commands
+			WHERE commands.session_id = (SELECT id FROM sessions WHERE public_id = ?)
+			ORDER BY commands.timestamp`, id); err != nil {
+		xlog.Errorf("Finding commands for session failed: %v", err)
+	} else {
+		result.Cmds = cmds
+	}
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(result)

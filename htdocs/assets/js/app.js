@@ -72,6 +72,13 @@ satsumaApp.controller('PDFViewCtrl', [ '$scope', '$routeParams', '$http', functi
 	$scope.origScale = 1.0;
 	$scope.scale = $scope.origScale;
 
+	$scope.isMouseDown = false;
+	$scope.lineWidth = 10;
+	$scope.lineColor = '#ADFF2F';
+	$scope.mouseCoords = [ ];
+	$scope.oldX = $scope.oldY = 0;
+	$scope.cmds = [ ];
+
 	$scope.loadPDF = function(path) {
 		PDFJS.getDocument(path).then(function(_pdfDoc) {
 			$scope.scale = $scope.origScale;
@@ -106,6 +113,12 @@ satsumaApp.controller('PDFViewCtrl', [ '$scope', '$routeParams', '$http', functi
 
 			page.render({ canvasContext: ctx, viewport: viewport }).then(
 				function() {
+					for (var i=0;i<$scope.cmds.length;i++) {
+						var cmd = $scope.cmds[i];
+						if (cmd.page == num && cmd.cmd != "gotoPage") {
+							$scope.executeCommand(cmd);
+						}
+					}
 					if (callback)
 						callback(true);
 				},
@@ -115,6 +128,49 @@ satsumaApp.controller('PDFViewCtrl', [ '$scope', '$routeParams', '$http', functi
 				}
 			);
 		});
+	};
+
+	$scope.executeCommand = function(cmd) {
+		switch (cmd.cmd) {
+		case "drawLine":
+			$scope.drawLine(cmd);
+			break;
+		case "gotoPage":
+			$scope.pageNum = cmd.page;
+			$scope.renderPage($scope.pageNum, null);
+			break;
+		case "clearSlide":
+			$scope.cmds = _.reject($scope.cmds, function(cmd) { return cmd.page == $scope.pageNum; });
+			$scope.renderPage($scope.pageNum, null);
+			break;
+		default:
+			console.log('unknown/unimplemented command ' + cmd.cmd);
+		}
+	};
+
+	$scope.drawLine = function(cmd) {
+		var canvas = document.getElementById('slide_canvas');
+		var ctx = canvas.getContext('2d');
+
+		var xFactor = canvas.width / cmd.canvasWidth;
+		var yFactor = canvas.height / cmd.canvasHeight;
+
+		ctx.beginPath();
+
+		ctx.setLineWidth(cmd.width * xFactor);
+		ctx.setStrokeColor(cmd.color, 0.5);
+
+		for (var i=0;i<cmd.coords.length;i+=2) {
+			ctx.lineTo(cmd.coords[i] * xFactor, cmd.coords[i+1] * yFactor);
+		}
+		ctx.stroke();
+		ctx.closePath();
+	};
+
+	$scope.clearSlide = function() {
+		$scope.sendCmd({"cmd": "clearSlide", "page": $scope.pageNum});
+		$scope.cmds = _.reject($scope.cmds, function(cmd) { return cmd.page == $scope.pageNum; });
+		$scope.renderPage($scope.pageNum, null);
 	};
 
 	$scope.zoomIn = function() {
@@ -130,6 +186,7 @@ satsumaApp.controller('PDFViewCtrl', [ '$scope', '$routeParams', '$http', functi
 	$scope.gotoPrev = function() {
 		if ($scope.pageNum > 1) {
 			$scope.pageNum--;
+			$scope.sendCmd({"cmd": "gotoPage", "page": $scope.pageNum});
 			$scope.renderPage($scope.pageNum, null);
 		}
 	};
@@ -137,8 +194,121 @@ satsumaApp.controller('PDFViewCtrl', [ '$scope', '$routeParams', '$http', functi
 	$scope.gotoNext = function() {
 		if ($scope.pageNum < $scope.pdfDoc.numPages) {
 			$scope.pageNum++;
+			$scope.sendCmd({"cmd": "gotoPage", "page": $scope.pageNum});
 			$scope.renderPage($scope.pageNum, null);
 		}
+	};
+
+	$scope.gotoPage = function(page) {
+		$scope.pageNum = page;
+		$scope.renderPage($scope.pageNum, null);
+	};
+
+	$scope.sendCmd = function(data) {
+		var jsonData = JSON.stringify(data);
+		console.log('sendCmd: ' + jsonData);
+		if ($scope.wsSend) {
+			console.log('sendCmd: sending data');
+			$scope.ws.send(jsonData);
+			$scope.cmds.push(data);
+		}
+	};
+
+	$scope.openWebSocketMaster = function() {
+		console.log('WebSocket: onopen for master called');
+		$scope.ws.send(JSON.stringify({"session_id": $scope.sessionId}));
+		$scope.wsSend = true;
+	};
+
+	$scope.openWebSocketSlave = function() {
+		console.log('WebSocket: onopen for slave called');
+		$scope.ws.send(JSON.stringify({"session_id": $scope.sessionId}));
+	};
+
+	$scope.onMessageSlave = function(evt) {
+		console.log('onMessageSlave: received message from server');
+		var data = JSON.parse(evt.data);
+		$scope.executeCommand(data);
+		$scope.cmds.push(data);
+	};
+
+	$scope.bindCanvas = function() {
+		$('#slide_canvas').mousedown($scope.mouseDown);
+		$('#slide_canvas').mousemove($scope.mouseMove);
+		$('#slide_canvas').mouseup($scope.mouseUp);
+		// TODO: tablet support.
+	};
+
+	$scope.mouseDown = function(e) {
+		var canvas = document.getElementById('slide_canvas');
+		var ctx = canvas.getContext('2d');
+
+		$scope.updateCanvasOffset();
+		$scope.isMouseDown = true;
+
+		ctx.setLineWidth($scope.lineWidth);
+		ctx.setStrokeColor($scope.lineColor, 0.5);
+
+		$scope.mouseCoords = [ ];
+
+		var x = e.clientX - $scope.leftOffset + window.scrollX;
+		var y = e.clientY - $scope.topOffset + window.scrollY;
+
+		$scope.mouseCoords.push(x);
+		$scope.mouseCoords.push(y);
+
+		ctx.beginPath();
+		ctx.moveTo(x, y);
+		ctx.stroke();
+		ctx.closePath();
+		$scope.oldX = x;
+		$scope.oldY = y;
+	};
+
+	$scope.mouseMove = function(e) {
+		if (!$scope.isMouseDown)
+			return;
+
+		var canvas = document.getElementById('slide_canvas');
+		var ctx = canvas.getContext('2d');
+
+		ctx.setLineWidth($scope.lineWidth);
+		ctx.setStrokeColor($scope.lineColor, 0.5);
+
+		var x = e.clientX - $scope.leftOffset + window.scrollX;
+		var y = e.clientY - $scope.topOffset + window.scrollY;
+
+		if (Math.abs(x - $scope.oldX) > $scope.lineWidth || Math.abs(y - $scope.oldY) > $scope.lineWidth) {
+			ctx.beginPath();
+			ctx.moveTo($scope.oldX, $scope.oldY);
+			ctx.lineTo(x, y);
+			ctx.stroke();
+			ctx.closePath();
+
+			$scope.mouseCoords.push(x);
+			$scope.mouseCoords.push(y);
+
+			$scope.oldX = x;
+			$scope.oldY = y;
+		}
+	};
+
+	$scope.mouseUp = function(e) {
+		if (!$scope.isMouseDown)
+			return;
+
+		var canvas = document.getElementById('slide_canvas');
+
+		$scope.oldX = $scope.oldY = 0;
+		$scope.sendCmd({"cmd": "drawLine", "coords": $scope.mouseCoords, "color": $scope.lineColor, "width": $scope.lineWidth, "page": $scope.pageNum, "canvasWidth": canvas.width, "canvasHeight": canvas.height});
+		$scope.mouseCoords = [ ];
+		$scope.isMouseDown = false;
+	};
+
+	$scope.updateCanvasOffset = function() {
+		var canvas = document.getElementById('slide_canvas');
+		$scope.leftOffset = canvas.offsetLeft;
+		$scope.topOffset = canvas.offsetTop;
 	};
 
 	switch ($scope.type) {
@@ -149,18 +319,26 @@ satsumaApp.controller('PDFViewCtrl', [ '$scope', '$routeParams', '$http', functi
 	case "session":
 		$http.get('/api/sessioninfo/' + $scope.sessionId).
 		success(function(data, status, header, config) {
+			console.log('session info: ', data);
 			$scope.title = data.title;
 			$scope.id = data.upload_id;
 			$scope.owner = data.owner;
-			/*
+			$scope.cmds = data.cmds || [ ];
 			if (data.page) {
 				$scope.pageNum = data.page;
 			}
-			*/
 			$scope.loadPDF("/userdata/" + $scope.id + ".pdf");
+			var wsURL = "ws://" + window.location.host + "/api/ws";
+			console.log('Opening WebSocket to ' + wsURL);
+			$scope.ws = new WebSocket(wsURL);
 			if ($scope.owner) {
-				console.log('TODO: connect WebSocket');
-				// TODO: connect to WebSocket.
+				$scope.bindCanvas();
+				console.log('setting onopen to openWebSocketMaster');
+				$scope.ws.onopen = $scope.openWebSocketMaster;
+			} else {
+				console.log('setting onmessage to onMessageSlave');
+				$scope.ws.onopen = $scope.openWebSocketSlave;
+				$scope.ws.onmessage = $scope.onMessageSlave;
 			}
 		});
 		break;

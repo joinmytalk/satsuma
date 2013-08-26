@@ -1,6 +1,7 @@
 package main
 
 import (
+	"code.google.com/p/go.net/websocket"
 	"database/sql"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/pat"
@@ -39,8 +40,10 @@ var (
 		DSN          string `goptions:"--dsn, description='MySQL DSN string', obligatory"`
 		HtdocsDir    string `goptions:"--htdocs, description='htdocs directory', obligatory"`
 		UploadDir    string `goptions:"--uploaddir, description='Upload directory', obligatory"`
+		RedisAddr    string `goptions:"--redis, description='redis address', obligatory"`
 	}{
-		Addr: "[::]:8080",
+		Addr:      "[::]:8080",
+		RedisAddr: ":6379",
 	}
 )
 
@@ -76,6 +79,7 @@ func main() {
 	apiRouter.Post("/api/delsession", http.HandlerFunc(DeleteSession))
 	apiRouter.Get("/api/getsessions", http.HandlerFunc(GetSessions))
 	apiRouter.Get("/api/sessioninfo/{id}", http.HandlerFunc(SessionInfo))
+	mux.Handle("/api/ws", websocket.Handler(WebsocketHandler))
 	mux.Handle("/api/", apiRouter)
 
 	// deliver index.html for AngularJS routes.
