@@ -2,6 +2,9 @@
 <html lang="en" ng-app="satsuma">
 	<head>
 		<meta charset="utf-8">
+		<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+
+		<meta name="description" content="Join my Talk! is a website to present everywhere you have an HTML5-capable web browser available.">
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 		<title>Join my Talk!</title>
@@ -20,8 +23,12 @@
 		<script src="/assets/js/ng-upload.min.js"></script>
 		<script src="/assets/js/app.js"></script>
 		<script src="/assets/js/pdf.js"></script>
+		<script src="/assets/js/console-log.js"></script>
 	</head>
 	<body ng-controller="LoginCtrl">
+		<!--[if lt IE 7]>
+			<p class="chromeframe">You are using an <strong>outdated</strong> browser. Please <a href="http://browsehappy.com/">upgrade your browser</a> or <a href="http://www.google.com/chromeframe/?redirect=true">activate Google Chrome Frame</a> to improve your experience.</p>
+		<![endif]-->
 		<div class="container" ng-show="checkedLoggedIn">
 			<div ng-view></div>
 		</div>
