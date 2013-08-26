@@ -16,6 +16,10 @@
 			<div class="btn-group" ng-show="owner && type == 'session'">
 				<a class="btn" ng-click="clearSlide()" title="Clear slide">Clear</a>
 			</div>
+			<div class="btn-group" ng-show="owner && type == 'session'">
+				<input type="color" ng-model="lineColor" title="Line color" class="vertical-middle">
+				<input type="number" ng-model="lineWidth" title="Line width" min="1" max="100" class="vertical-middle">
+			</div>
 		</div>
 		<div class="row">
 			<div class="span12 progress progress-striped active" ng-show="loadProgress > 0">
