@@ -55,7 +55,6 @@ satsumaApp.config(['$routeProvider', '$locationProvider', function($routeProvide
 ]);
 
 satsumaApp.controller('PDFViewCtrl', [ '$scope', '$routeParams', '$http', function($scope, $routeParams, $http) {
-	console.log('PDFViewCtrl: new instance. id = ' + $routeParams.id);
 	if ($routeParams.uploadid) {
 		$scope.type = "viewer";
 		$scope.id = $routeParams.uploadid;
@@ -63,6 +62,7 @@ satsumaApp.controller('PDFViewCtrl', [ '$scope', '$routeParams', '$http', functi
 		$scope.sessionId = $routeParams.sessionid;
 		$scope.type = "session";
 	};
+	console.log('PDFViewCtrl: new instance. type = ' + $scope.type);
 
 	$scope.pageNum = 1;
 	PDFJS.disableWorker = true;

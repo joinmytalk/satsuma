@@ -123,7 +123,8 @@ func SessionInfo(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	result.IsOwner = (result.Owner == gplusID)
+	xlog.Debugf("SessionInfo: Owner = %s gplusID = %s", result.Owner, gplusID)
+	result.IsOwner = (gplusID != "" && result.Owner == gplusID)
 
 	xlog.Debugf("SessionInfo: retrieved basic data")
 
