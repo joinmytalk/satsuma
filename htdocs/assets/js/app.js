@@ -283,11 +283,15 @@ satsumaApp.controller('PDFViewCtrl', [ '$scope', '$routeParams', '$http', functi
 		// TODO: tablet support.
 	};
 
+	$scope.relCoords = function(canvas, evt) {
+		var rect = canvas.getBoundingClientRect();
+		return { x: evt.clientX - rect.left, y: evt.clientY - rect.top };
+	};
+
 	$scope.mouseDown = function(e) {
 		var canvas = document.getElementById('slide_canvas');
 		var ctx = canvas.getContext('2d');
 
-		$scope.updateCanvasOffset();
 		$scope.isMouseDown = true;
 
 		ctx.setLineWidth($scope.lineWidth);
@@ -295,18 +299,17 @@ satsumaApp.controller('PDFViewCtrl', [ '$scope', '$routeParams', '$http', functi
 
 		$scope.mouseCoords = [ ];
 
-		var x = e.clientX - $scope.leftOffset + window.scrollX;
-		var y = e.clientY - $scope.topOffset + window.scrollY;
+		var coords = $scope.relCoords(canvas, e);
 
-		$scope.mouseCoords.push(x);
-		$scope.mouseCoords.push(y);
+		$scope.mouseCoords.push(coords.x);
+		$scope.mouseCoords.push(coords.y);
 
 		ctx.beginPath();
-		ctx.moveTo(x, y);
+		ctx.moveTo(coords.x, coords.y);
 		ctx.stroke();
 		ctx.closePath();
-		$scope.oldX = x;
-		$scope.oldY = y;
+		$scope.oldX = coords.x;
+		$scope.oldY = coords.y;
 	};
 
 	$scope.mouseMove = function(e) {
@@ -319,21 +322,20 @@ satsumaApp.controller('PDFViewCtrl', [ '$scope', '$routeParams', '$http', functi
 		ctx.setLineWidth($scope.lineWidth);
 		ctx.setStrokeColor($scope.lineColor, 0.5);
 
-		var x = e.clientX - $scope.leftOffset + window.scrollX;
-		var y = e.clientY - $scope.topOffset + window.scrollY;
+		var coords = $scope.relCoords(canvas, e);
 
-		if (Math.abs(x - $scope.oldX) > $scope.lineWidth || Math.abs(y - $scope.oldY) > $scope.lineWidth) {
+		if (Math.abs(coords.x - $scope.oldX) > $scope.lineWidth || Math.abs(coords.y - $scope.oldY) > $scope.lineWidth) {
 			ctx.beginPath();
 			ctx.moveTo($scope.oldX, $scope.oldY);
-			ctx.lineTo(x, y);
+			ctx.lineTo(coords.x, coords.y);
 			ctx.stroke();
 			ctx.closePath();
 
-			$scope.mouseCoords.push(x);
-			$scope.mouseCoords.push(y);
+			$scope.mouseCoords.push(coords.x);
+			$scope.mouseCoords.push(coords.y);
 
-			$scope.oldX = x;
-			$scope.oldY = y;
+			$scope.oldX = coords.x;
+			$scope.oldY = coords.y;
 		}
 	};
 
@@ -347,12 +349,6 @@ satsumaApp.controller('PDFViewCtrl', [ '$scope', '$routeParams', '$http', functi
 		$scope.sendCmd({"cmd": "drawLine", "coords": $scope.mouseCoords, "color": $scope.lineColor, "width": $scope.lineWidth, "page": $scope.pageNum, "canvasWidth": canvas.width, "canvasHeight": canvas.height});
 		$scope.mouseCoords = [ ];
 		$scope.isMouseDown = false;
-	};
-
-	$scope.updateCanvasOffset = function() {
-		var canvas = document.getElementById('slide_canvas');
-		$scope.leftOffset = canvas.offsetLeft;
-		$scope.topOffset = canvas.offsetTop;
 	};
 
 	switch ($scope.type) {
