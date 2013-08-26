@@ -102,12 +102,15 @@ satsumaApp.controller('PDFViewCtrl', [ '$scope', '$routeParams', '$http', functi
 			var viewport = page.getViewport($scope.scale);
 			if ($scope.fullscreen) {
 				var new_scale = Math.min($scope.scale * (window.screen.height / viewport.height), $scope.scale * (window.screen.width / viewport.width));
+				console.log('scale = ' + $scope.scale);
+				console.log('new scale = ' + new_scale);
 				viewport = page.getViewport(new_scale);
 			}
 
 			var canvas = document.getElementById('slide_canvas');
 			var ctx = canvas.getContext('2d');
 
+			console.log(viewport);
 			canvas.height = viewport.height;
 			canvas.width = viewport.width;
 
@@ -181,6 +184,47 @@ satsumaApp.controller('PDFViewCtrl', [ '$scope', '$routeParams', '$http', functi
 	$scope.zoomOut = function() {
 		$scope.scale /= 1.2;
 		$scope.renderPage($scope.pageNum, null);
+	};
+
+	$scope.gotoFullscreen = function() {
+		$('#canvas_wrapper').unbind('webkitfullscreenchange mozfullscreenchange fullscreenchange');
+		$('#canvas_wrapper').bind('webkitfullscreenchange mozfullscreenchange fullscreenchange', function() {
+			$scope.fullscreen = !$scope.fullscreen;
+			console.log('fullscreen change: fullscreen = ' + $scope.fullscreen);
+			if ($scope.fullscreen) {
+				$(window).keydown($scope.handleKey);
+			} else {
+				$(window).unbind('keydown', $scope.handleKey);
+			}
+			$scope.renderPage($scope.pageNum, null);
+		});
+
+		// request the fullscreen change.
+		var canvas_wrapper = document.getElementById('canvas_wrapper');
+		if (canvas_wrapper.requestFullscreen) {
+			canvas_wrapper.requestFullscreen();
+		} else if (canvas_wrapper.mozRequestFullScreen) {
+			canvas_wrapper.mozRequestFullScreen();
+		} else if (canvas_wrapper.webkitRequestFullscreen) {
+			canvas_wrapper.webkitRequestFullScreen();
+		} else {
+			console.log('no requestFullscreen function found!');
+		}
+	};
+
+	$scope.handleKey = function(event) {
+		console.log("called handleKey");
+		switch (event.which) {
+		case 37: // left
+		case 38: // up
+			$scope.gotoPrev();
+			break;
+		case 32: // space
+		case 39: // right
+		case 40: // down
+			$scope.gotoNext();
+			break;
+		}
 	};
 
 	$scope.gotoPrev = function() {
