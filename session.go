@@ -103,11 +103,12 @@ func SessionInfo(w http.ResponseWriter, r *http.Request) {
 	id := r.URL.Query().Get(":id")
 
 	result := struct {
-		Title    string `meddler:"title" json:"title"`
-		UploadID string `meddler:"public_id" json:"upload_id"`
-		IsOwner  bool   `json:"owner" meddler:"-"`
-		Owner    string `meddler:"owner" json:"-"`
-		Page     int    `meddler:"page" json:"page"`
+		Title    string     `meddler:"title" json:"title"`
+		UploadID string     `meddler:"public_id" json:"upload_id"`
+		IsOwner  bool       `json:"owner" meddler:"-"`
+		Owner    string     `meddler:"owner" json:"-"`
+		Page     int        `meddler:"page" json:"page"`
+		Cmds     []*Command `meddler:"-" json:"cmds"`
 	}{}
 
 	if err := meddler.QueryRow(sqlDB, &result,
@@ -138,6 +139,19 @@ func SessionInfo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	xlog.Debugf("SessionInfo: retrieved current page")
+
+	var cmds []*Command
+
+	if err := meddler.QueryAll(sqlDB, &cmds,
+		`SELECT
+			*
+			FROM commands
+			WHERE commands.session_id = (SELECT id FROM sessions WHERE public_id = ?)
+			ORDER BY commands.timestamp`, id); err != nil {
+		xlog.Errorf("Finding commands for session failed: %v", err)
+	} else {
+		result.Cmds = cmds
+	}
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(result)

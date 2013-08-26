@@ -48,11 +48,16 @@ func WebsocketHandler(s *websocket.Conn) {
 }
 
 type Command struct {
-	ID        int       `meddler:"id,pk" json:"-"`
-	Timestamp time.Time `meddler:"timestamp,utctimez" json:"timestamp"`
-	Cmd       string    `meddler:"cmd" json:"cmd"`
-	Page      int       `meddler:"page" json:"page"`
-	SessionID int       `meddler:"session_id" json:"-"`
+	ID           int       `meddler:"id,pk" json:"-"`
+	Timestamp    time.Time `meddler:"timestamp,utctimez" json:"timestamp"`
+	Cmd          string    `meddler:"cmd" json:"cmd"`
+	Page         int       `meddler:"page" json:"page"`
+	SessionID    int       `meddler:"session_id" json:"-"`
+	Coordinates  []int     `meddler:"coordinates,json" json:"coords"`
+	Color        string    `meddler:"color" json:"color"`
+	Width        int       `meddler:"width" json:"width"`
+	CanvasWidth  int       `meddler:"canvas_width" json:"canvasWidth"`
+	CanvasHeight int       `meddler:"canvas_height" json:"canvasHeight"`
 }
 
 func slaveHandler(s *websocket.Conn, sessionID int) {
@@ -110,10 +115,14 @@ func masterHandler(s *websocket.Conn, sessionID int) {
 		cmd.SessionID = sessionID
 		cmd.Timestamp = time.Now()
 
-		if err := meddler.Insert(sqlDB, "commands", &cmd); err != nil {
-			xlog.Errorf("Inserting command failed: %v", err)
-			break
+		if cmd.Cmd != "clearSlide" {
+			if err := meddler.Insert(sqlDB, "commands", &cmd); err != nil {
+				xlog.Errorf("Inserting command failed: %v", err)
+				break
+			}
 		}
+
+		executeCommand(cmd)
 
 		cmdJSON, _ := json.Marshal(cmd)
 
@@ -121,4 +130,13 @@ func masterHandler(s *websocket.Conn, sessionID int) {
 		c.Flush()
 	}
 	xlog.Debugf("masterHandler: closing connection")
+}
+
+func executeCommand(cmd Command) {
+	switch cmd.Cmd {
+	case "clearSlide":
+		if _, err := sqlDB.Exec("DELETE FROM commands WHERE session_id = ? AND page = ? AND cmd != 'gotoPage'", cmd.SessionID, cmd.Page); err != nil {
+			xlog.Errorf("clearSlide for %d page %d failed: %v", cmd.SessionID, cmd.Page, err)
+		}
+	}
 }
