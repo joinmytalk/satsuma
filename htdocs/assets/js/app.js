@@ -288,6 +288,10 @@ satsumaApp.controller('PDFViewCtrl', [ '$scope', '$routeParams', '$http', '$loca
 		$('#slide_canvas').mousedown($scope.mouseDown);
 		$('#slide_canvas').mousemove($scope.mouseMove);
 		$('#slide_canvas').mouseup($scope.mouseUp);
+
+		$('#slide_canvas').touchstart($scope.touchStart);
+		$('#slide_canvas').touchmove($scope.touchMove);
+		$('#slide_canvas').touchend($scope.touchEnd);
 		// TODO: tablet support.
 	};
 
@@ -348,6 +352,76 @@ satsumaApp.controller('PDFViewCtrl', [ '$scope', '$routeParams', '$http', '$loca
 	};
 
 	$scope.mouseUp = function(e) {
+		if (!$scope.isMouseDown)
+			return;
+
+		var canvas = document.getElementById('slide_canvas');
+
+		$scope.oldX = $scope.oldY = 0;
+		$scope.sendCmd({"cmd": "drawLine", "coords": $scope.mouseCoords, "color": $scope.lineColor, "width": $scope.lineWidth, "page": $scope.pageNum, "canvasWidth": canvas.width, "canvasHeight": canvas.height});
+		$scope.mouseCoords = [ ];
+		$scope.isMouseDown = false;
+	};
+
+	$scope.touchStart = function(e) {
+		e.preventDefault();
+
+		if (e.targetTouches.length > 1) {
+			return;
+		}
+
+		var canvas = document.getElementById('slide_canvas');
+		var ctx = canvas.getContext('2d');
+
+		$scope.isMouseDown = true;
+
+		ctx.setLineWidth($scope.lineWidth);
+		ctx.setStrokeColor($scope.lineColor, 0.5);
+
+		$scope.mouseCoords = [ ];
+
+		var coords = $scope.relCoords(canvas, e.targetTouches[0]);
+
+		$scope.mouseCoords.push(coords.x);
+		$scope.mouseCoords.push(coords.y);
+
+		ctx.beginPath();
+		ctx.moveTo(coords.x, coords.y);
+		ctx.stroke();
+		ctx.closePath();
+		$scope.oldX = coords.x;
+		$scope.oldY = coords.y;
+	};
+
+	$scope.touchMove = function(e) {
+		if (!$scope.isMouseDown)
+			return;
+
+		var canvas = document.getElementById('slide_canvas');
+		var ctx = canvas.getContext('2d');
+
+		ctx.setLineWidth($scope.lineWidth);
+		ctx.setStrokeColor($scope.lineColor, 0.5);
+
+		var coords = $scope.relCoords(canvas, e.targetTouches[0]);
+
+		if (Math.abs(coords.x - $scope.oldX) > $scope.lineWidth || Math.abs(coords.y - $scope.oldY) > $scope.lineWidth) {
+			ctx.beginPath();
+			ctx.moveTo($scope.oldX, $scope.oldY);
+			ctx.lineTo(coords.x, coords.y);
+			ctx.stroke();
+			ctx.closePath();
+
+			$scope.mouseCoords.push(coords.x);
+			$scope.mouseCoords.push(coords.y);
+
+			$scope.oldX = coords.x;
+			$scope.oldY = coords.y;
+		}
+
+	};
+
+	$scope.touchEnd = function(e) {
 		if (!$scope.isMouseDown)
 			return;
 
