@@ -1,9 +1,9 @@
 <div class="container">
 	<div class="row">
 		<h1 ng-show="title" class="text-center">{{title}}</h1>
-		<div class="btn-toolbar">
+		<div class="btn-toolbar text-center">
 			<div class="btn-group">
-				<a class="btn" href="/" title="Exit presentation"><i class="icon-off"></i>Exit</a>
+				<a class="btn" ng-click="exit()" title="Exit presentation"><i class="icon-off"></i>Exit</a>
 			</div>
 			<div class="btn-group">
 				<a class="btn" ng-click="zoomIn()" title="Zoom in"><i class="icon-zoom-in"></i></a>
@@ -29,7 +29,7 @@
 		</div>
 		<div class="row">
 			<div class="span12">
-				<div id="canvas_wrapper">
+				<div id="canvas_wrapper" class="text-center">
 					<canvas id="slide_canvas" style="border: 1px solid black"></canvas>
 				</div>
 			</div>

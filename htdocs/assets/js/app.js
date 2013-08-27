@@ -54,7 +54,7 @@ satsumaApp.config(['$routeProvider', '$locationProvider', function($routeProvide
 	}
 ]);
 
-satsumaApp.controller('PDFViewCtrl', [ '$scope', '$routeParams', '$http', function($scope, $routeParams, $http) {
+satsumaApp.controller('PDFViewCtrl', [ '$scope', '$routeParams', '$http', '$location', function($scope, $routeParams, $http, $location) {
 	if ($routeParams.uploadid) {
 		$scope.type = "viewer";
 		$scope.id = $routeParams.uploadid;
@@ -168,6 +168,14 @@ satsumaApp.controller('PDFViewCtrl', [ '$scope', '$routeParams', '$http', functi
 		}
 		ctx.stroke();
 		ctx.closePath();
+	};
+
+	$scope.exit = function() {
+		if ($scope.ws) {
+			$scope.ws.close();
+			$scope.ws = null;
+		}
+		$location.path('/');
 	};
 
 	$scope.clearSlide = function() {
