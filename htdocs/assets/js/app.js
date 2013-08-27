@@ -247,10 +247,13 @@ satsumaApp.controller('PDFViewCtrl', [ '$scope', '$routeParams', '$http', '$loca
 		$('#slide_canvas').mousemove($scope.mouseMove);
 		$('#slide_canvas').mouseup($scope.mouseUp);
 
-		$('#slide_canvas').touchstart($scope.touchStart);
-		$('#slide_canvas').touchmove($scope.touchMove);
-		$('#slide_canvas').touchend($scope.touchEnd);
-		// TODO: tablet support.
+		var canvas = document.getElementById('slide_canvas');
+		canvas.ontouchstart = $scope.touchStart;
+		canvas.ontouchmove = $scope.touchMove;
+		canvas.ontouchend = $scope.touchEnd;
+		//$('#slide_canvas').bind('touchstart', $scope.touchStart);
+		//$('#slide_canvas').bind('touchmove', $scope.touchMove);
+		//$('#slide_canvas').bind('touchend', $scope.touchEnd);
 	};
 
 	$scope.relCoords = function(canvas, evt) {
@@ -324,7 +327,7 @@ satsumaApp.controller('PDFViewCtrl', [ '$scope', '$routeParams', '$http', '$loca
 	$scope.touchStart = function(e) {
 		e.preventDefault();
 
-		if (e.targetTouches.length > 1) {
+		if (e.touches.length > 1) {
 			return;
 		}
 
@@ -338,7 +341,7 @@ satsumaApp.controller('PDFViewCtrl', [ '$scope', '$routeParams', '$http', '$loca
 
 		$scope.mouseCoords = [ ];
 
-		var coords = $scope.relCoords(canvas, e.targetTouches[0]);
+		var coords = $scope.relCoords(canvas, e.touches[0]);
 
 		$scope.mouseCoords.push(coords.x);
 		$scope.mouseCoords.push(coords.y);
@@ -352,6 +355,8 @@ satsumaApp.controller('PDFViewCtrl', [ '$scope', '$routeParams', '$http', '$loca
 	};
 
 	$scope.touchMove = function(e) {
+		e.preventDefault();
+
 		if (!$scope.isMouseDown)
 			return;
 
@@ -361,7 +366,7 @@ satsumaApp.controller('PDFViewCtrl', [ '$scope', '$routeParams', '$http', '$loca
 		ctx.setLineWidth($scope.lineWidth);
 		ctx.setStrokeColor($scope.lineColor, 0.5);
 
-		var coords = $scope.relCoords(canvas, e.targetTouches[0]);
+		var coords = $scope.relCoords(canvas, e.touches[0]);
 
 		if (Math.abs(coords.x - $scope.oldX) > $scope.lineWidth || Math.abs(coords.y - $scope.oldY) > $scope.lineWidth) {
 			ctx.beginPath();
@@ -380,6 +385,8 @@ satsumaApp.controller('PDFViewCtrl', [ '$scope', '$routeParams', '$http', '$loca
 	};
 
 	$scope.touchEnd = function(e) {
+		e.preventDefault();
+
 		if (!$scope.isMouseDown)
 			return;
 
