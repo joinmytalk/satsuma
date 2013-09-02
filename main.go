@@ -3,9 +3,9 @@ package main
 import (
 	"code.google.com/p/go.net/websocket"
 	"database/sql"
+	"github.com/bmizerany/pat"
 	"github.com/bradrydzewski/go.auth"
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/gorilla/pat"
 	"github.com/gorilla/sessions"
 	"github.com/joinmytalk/xlog"
 	"github.com/voxelbrain/goptions"
@@ -18,10 +18,8 @@ const (
 	SESSIONNAME = "SATSUMA_COOKIE"
 )
 
-var (
-	store   sessions.Store
-	sqlDB   *sql.DB
-	options = struct {
+func main() {
+	options := struct {
 		Addr                string `goptions:"-L, --listen, description='Listen address'"`
 		CookieKey           string `goptions:"-k, --key, description='Secret key for cookie store', obligatory"`
 		GplusClientID       string `goptions:"--gplusclientid, description='Google+ Client ID', obligatory"`
@@ -36,23 +34,22 @@ var (
 		Addr:      "[::]:8080",
 		RedisAddr: ":6379",
 	}
-)
-
-func main() {
 	goptions.ParseAndFail(&options)
 
 	xlog.Debug("Creating cookie store...")
-	store = sessions.NewCookieStore([]byte(options.CookieKey))
+	sessionStore := sessions.NewCookieStore([]byte(options.CookieKey))
 
 	auth.Config.CookieSecret = []byte(options.CookieKey)
 	auth.Config.LoginSuccessRedirect = "/api/connect"
 	auth.Config.CookieSecure = false
 
 	xlog.Debugf("Connecting to database %s...", options.DSN)
+
+	var dbStore *Store
 	if sqldb, err := sql.Open("mysql", options.DSN); err != nil {
 		xlog.Fatalf("sql.Open failed: %v", err)
 	} else {
-		sqlDB = sqldb
+		dbStore = NewStore(sqldb)
 	}
 
 	xlog.Debugf("Creating upload directory %s...", options.UploadDir)
@@ -61,29 +58,38 @@ func main() {
 	xlog.Debugf("Setting up HTTP server...")
 	mux := http.NewServeMux()
 
+	// auth calls
 	mux.Handle("/auth/gplus", auth.Google(options.GplusClientID, options.GplusClientSecret, "http://localhost:8080/auth/gplus"))
 	mux.Handle("/auth/twitter", auth.Twitter(options.TwitterClientKey, options.TwitterClientSecret, "http://localhost:8080/auth/twitter"))
 
 	// API calls.
 	apiRouter := pat.New()
-	apiRouter.Get("/api/loggedin", http.HandlerFunc(LoggedIn))
-	apiRouter.Get("/api/connect", http.HandlerFunc(auth.SecureUser(Connect)))
-	apiRouter.Post("/api/disconnect", http.HandlerFunc(Disconnect))
-	apiRouter.Post("/api/upload", http.HandlerFunc(DoUpload))
-	apiRouter.Get("/api/getuploads", http.HandlerFunc(GetUploads))
-	apiRouter.Post("/api/renameupload", http.HandlerFunc(RenameUpload))
-	apiRouter.Post("/api/delupload", http.HandlerFunc(DeleteUpload))
-	apiRouter.Post("/api/startsession", http.HandlerFunc(StartSession))
-	apiRouter.Post("/api/stopsession", http.HandlerFunc(StopSession))
-	apiRouter.Post("/api/delsession", http.HandlerFunc(DeleteSession))
-	apiRouter.Get("/api/getsessions", http.HandlerFunc(GetSessions))
-	apiRouter.Get("/api/sessioninfo/{id}", http.HandlerFunc(SessionInfo))
-	mux.Handle("/api/ws", websocket.Handler(WebsocketHandler))
+	apiRouter.Get("/api/loggedin", &LoggedInHandler{SessionStore: sessionStore})
+	apiRouter.Get("/api/connect", http.HandlerFunc(auth.SecureUser(func(w http.ResponseWriter, r *http.Request, u auth.User) {
+		Connect(w, r, u, sessionStore)
+	})))
+	apiRouter.Post("/api/disconnect", &DisconnectHandler{SessionStore: sessionStore})
+	apiRouter.Post("/api/upload", &UploadHandler{SessionStore: sessionStore, DBStore: dbStore, UploadStore: &FileUploadStore{UploadDir: options.UploadDir}})
+	apiRouter.Get("/api/getuploads", &GetUploadsHandler{SessionStore: sessionStore, DBStore: dbStore})
+	apiRouter.Post("/api/renameupload", &RenameUploadHandler{SessionStore: sessionStore, DBStore: dbStore})
+	apiRouter.Post("/api/delupload", &DeleteUploadHandler{SessionStore: sessionStore, DBStore: dbStore})
+	apiRouter.Post("/api/startsession", &StartSessionHandler{SessionStore: sessionStore, DBStore: dbStore})
+	apiRouter.Post("/api/stopsession", &StopSessionHandler{SessionStore: sessionStore, DBStore: dbStore})
+	apiRouter.Post("/api/delsession", &DeleteSessionHandler{SessionStore: sessionStore, DBStore: dbStore})
+	apiRouter.Get("/api/getsessions", &GetSessionsHandler{SessionStore: sessionStore, DBStore: dbStore})
+	apiRouter.Get("/api/sessioninfo/:id", &GetSessionInfoHandler{SessionStore: sessionStore, DBStore: dbStore})
+	mux.Handle("/api/ws", websocket.Handler(func(c *websocket.Conn) {
+		WebsocketHandler(c, dbStore, sessionStore, options.RedisAddr)
+	}))
 	mux.Handle("/api/", apiRouter)
 
+	deliverIndex := func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, path.Join(options.HtdocsDir, "index.html"))
+	}
+
 	// deliver index.html for AngularJS routes.
-	mux.HandleFunc("/v/", DeliverIndex)
-	mux.HandleFunc("/s/", DeliverIndex)
+	mux.HandleFunc("/v/", deliverIndex)
+	mux.HandleFunc("/s/", deliverIndex)
 
 	// deliver static files from htdocs.
 	mux.Handle("/", http.FileServer(http.Dir(options.HtdocsDir)))
@@ -93,8 +99,4 @@ func main() {
 	if err := httpsrv.ListenAndServe(); err != nil {
 		xlog.Fatalf("ListenAndServe: %v", err)
 	}
-}
-
-func DeliverIndex(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, path.Join(options.HtdocsDir, "index.html"))
 }

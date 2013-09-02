@@ -2,13 +2,10 @@ package main
 
 import (
 	"encoding/json"
+	"github.com/gorilla/sessions"
 	"github.com/joinmytalk/xlog"
-	"github.com/russross/meddler"
 	"github.com/surma-dump/gouuid"
-	"io"
 	"net/http"
-	"os"
-	"path"
 	"time"
 )
 
@@ -20,8 +17,14 @@ type Upload struct {
 	Uploaded time.Time `meddler:"uploaded,utctimez"`
 }
 
-func DoUpload(w http.ResponseWriter, r *http.Request) {
-	session, _ := store.Get(r, SESSIONNAME)
+type UploadHandler struct {
+	SessionStore sessions.Store
+	DBStore      *Store
+	UploadStore  *FileUploadStore
+}
+
+func (h *UploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	session, _ := h.SessionStore.Get(r, SESSIONNAME)
 
 	if session.Values["userID"] == nil {
 		http.Error(w, "authentication required", http.StatusForbidden)
@@ -42,19 +45,13 @@ func DoUpload(w http.ResponseWriter, r *http.Request) {
 
 	id := generateID()
 
-	filename := path.Join(options.UploadDir, id+".pdf")
-	f, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE, 0644)
-	if err != nil {
-		http.Error(w, "couldn't open file for writing", http.StatusInternalServerError)
+	if err := h.UploadStore.Store(id, file); err != nil {
+		xlog.Errorf("Storing file for upload %s failed: %v", id, err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	defer f.Close()
 
-	if _, err := io.Copy(f, file); err != nil {
-		xlog.Errorf("Writing file %s failed: %v", filename, err)
-	}
-
-	if err := meddler.Insert(sqlDB, "uploads", &Upload{
+	if err := h.DBStore.InsertUpload(&Upload{
 		PublicID: id,
 		Owner:    session.Values["userID"].(string),
 		Title:    title,
@@ -69,8 +66,14 @@ func DoUpload(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]string{"id": id})
 }
 
-func DeleteUpload(w http.ResponseWriter, r *http.Request) {
-	session, _ := store.Get(r, SESSIONNAME)
+type DeleteUploadHandler struct {
+	SessionStore sessions.Store
+	DBStore      *Store
+	UploadStore  *FileUploadStore
+}
+
+func (h *DeleteUploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	session, _ := h.SessionStore.Get(r, SESSIONNAME)
 
 	if session.Values["userID"] == nil {
 		http.Error(w, "authentication required", http.StatusForbidden)
@@ -86,21 +89,26 @@ func DeleteUpload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := sqlDB.Exec("DELETE FROM uploads WHERE public_id = ? AND owner = ?", requestData.UploadID, session.Values["userID"].(string))
+	rowsAffected, err := h.DBStore.DeleteUploadByPublicID(requestData.UploadID, session.Values["userID"].(string))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	if rowsAffected, err := result.RowsAffected(); err == nil && rowsAffected != 0 {
-		os.Remove(path.Join(options.UploadDir, requestData.UploadID+".pdf"))
+	if rowsAffected > 0 {
+		h.UploadStore.Remove(requestData.UploadID)
 	}
 
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func RenameUpload(w http.ResponseWriter, r *http.Request) {
-	session, _ := store.Get(r, SESSIONNAME)
+type RenameUploadHandler struct {
+	SessionStore sessions.Store
+	DBStore      *Store
+}
+
+func (h *RenameUploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	session, _ := h.SessionStore.Get(r, SESSIONNAME)
 
 	if session.Values["userID"] == nil {
 		http.Error(w, "authentication required", http.StatusForbidden)
@@ -117,13 +125,32 @@ func RenameUpload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err := sqlDB.Exec("UPDATE uploads SET title = ? WHERE public_id = ? AND owner = ?", requestData.NewTitle, requestData.UploadID, session.Values["userID"].(string))
-	if err != nil {
+	if err := h.DBStore.SetTitleForPresentation(requestData.NewTitle, requestData.UploadID, session.Values["userID"].(string)); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+type GetUploadsHandler struct {
+	SessionStore sessions.Store
+	DBStore      *Store
+}
+
+func (h *GetUploadsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	session, _ := h.SessionStore.Get(r, SESSIONNAME)
+	userID := session.Values["userID"].(string)
+
+	result, err := h.DBStore.GetUploadsForUser(userID)
+	if err != nil {
+		xlog.Errorf("Couldn't query uploads: %v", err)
+		http.Error(w, "query failed", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(result)
 }
 
 func generateID() string {
