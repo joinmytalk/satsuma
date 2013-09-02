@@ -19,7 +19,11 @@ type Upload struct {
 	Uploaded time.Time `meddler:"uploaded,utctimez"`
 }
 
-func DoUpload(w http.ResponseWriter, r *http.Request) {
+type UploadHandler struct {
+	DBStore *Store
+}
+
+func (h *UploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	session, _ := store.Get(r, SESSIONNAME)
 
 	if session.Values["userID"] == nil {
@@ -53,7 +57,7 @@ func DoUpload(w http.ResponseWriter, r *http.Request) {
 		xlog.Errorf("Writing file %s failed: %v", filename, err)
 	}
 
-	if err := dbStore.InsertUpload(&Upload{
+	if err := h.DBStore.InsertUpload(&Upload{
 		PublicID: id,
 		Owner:    session.Values["userID"].(string),
 		Title:    title,
@@ -68,7 +72,11 @@ func DoUpload(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]string{"id": id})
 }
 
-func DeleteUpload(w http.ResponseWriter, r *http.Request) {
+type DeleteUploadHandler struct {
+	DBStore *Store
+}
+
+func (h *DeleteUploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	session, _ := store.Get(r, SESSIONNAME)
 
 	if session.Values["userID"] == nil {
@@ -85,7 +93,7 @@ func DeleteUpload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rowsAffected, err := dbStore.DeleteUploadByPublicID(requestData.UploadID, session.Values["userID"].(string))
+	rowsAffected, err := h.DBStore.DeleteUploadByPublicID(requestData.UploadID, session.Values["userID"].(string))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -98,7 +106,11 @@ func DeleteUpload(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func RenameUpload(w http.ResponseWriter, r *http.Request) {
+type RenameUploadHandler struct {
+	DBStore *Store
+}
+
+func (h *RenameUploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	session, _ := store.Get(r, SESSIONNAME)
 
 	if session.Values["userID"] == nil {
@@ -116,7 +128,7 @@ func RenameUpload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := dbStore.SetTitleForPresentation(requestData.NewTitle, requestData.UploadID, session.Values["userID"].(string)); err != nil {
+	if err := h.DBStore.SetTitleForPresentation(requestData.NewTitle, requestData.UploadID, session.Values["userID"].(string)); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -124,11 +136,15 @@ func RenameUpload(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func GetUploads(w http.ResponseWriter, r *http.Request) {
+type GetUploadsHandler struct {
+	DBStore *Store
+}
+
+func (h *GetUploadsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	session, _ := store.Get(r, SESSIONNAME)
 	userID := session.Values["userID"].(string)
 
-	result, err := dbStore.GetUploadsForUser(userID)
+	result, err := h.DBStore.GetUploadsForUser(userID)
 	if err != nil {
 		xlog.Errorf("Couldn't query uploads: %v", err)
 		http.Error(w, "query failed", http.StatusInternalServerError)

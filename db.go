@@ -57,7 +57,15 @@ func (s *Store) GetUploadsForUser(userID string) ([]*Upload, error) {
 
 func (s *Store) GetSessions(userID string) ([]*SessionData, error) {
 	result := []*SessionData{}
-	err := meddler.QueryAll(s.sqlDB, &result, "select sessions.public_id as public_id, sessions.started as starte    d, sessions.ended as ended, uploads.title as title  from uploads, sessions where sessions.upload_id = uploads.id a    nd uploads.owner = ? order by sessions.started desc", userID)
+	err := meddler.QueryAll(s.sqlDB, &result,
+		`SELECT sessions.public_id AS public_id, 
+			sessions.started AS started, 
+			sessions.ended AS ended, 
+			uploads.title AS title
+		FROM uploads, sessions 
+		WHERE sessions.upload_id = uploads.id AND 
+			uploads.owner = ? 
+		ORDER BY sessions.started DESC`, userID)
 	if err != nil {
 		result = nil
 	} else {

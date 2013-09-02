@@ -15,7 +15,11 @@ type Session struct {
 	Ended    time.Time `meddler:"ended,utctimez" json:"ended,omitempty"`
 }
 
-func StartSession(w http.ResponseWriter, r *http.Request) {
+type StartSessionHandler struct {
+	DBStore *Store
+}
+
+func (h *StartSessionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	session, _ := store.Get(r, SESSIONNAME)
 
 	if session.Values["userID"] == nil {
@@ -33,7 +37,7 @@ func StartSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	uploadEntry, err := dbStore.GetUploadByPublicID(data.UploadID, session.Values["userID"].(string))
+	uploadEntry, err := h.DBStore.GetUploadByPublicID(data.UploadID, session.Values["userID"].(string))
 	if err != nil {
 		xlog.Errorf("Querying upload %s failed: %v", data.UploadID, err)
 		http.Error(w, err.Error(), http.StatusNotFound)
@@ -42,7 +46,7 @@ func StartSession(w http.ResponseWriter, r *http.Request) {
 
 	id := generateID()
 
-	if err := dbStore.InsertSession(&Session{
+	if err := h.DBStore.InsertSession(&Session{
 		UploadID: uploadEntry.ID,
 		PublicID: id,
 		Started:  time.Now(),
@@ -65,7 +69,11 @@ type SessionData struct {
 	EndedJSON string    `meddler:"-" json:"ended,omitempty"`
 }
 
-func GetSessions(w http.ResponseWriter, r *http.Request) {
+type GetSessionsHandler struct {
+	DBStore *Store
+}
+
+func (h *GetSessionsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	session, _ := store.Get(r, SESSIONNAME)
 
 	if session.Values["userID"] == nil {
@@ -73,7 +81,7 @@ func GetSessions(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := dbStore.GetSessions(session.Values["userID"].(string))
+	result, err := h.DBStore.GetSessions(session.Values["userID"].(string))
 
 	if err != nil {
 		xlog.Errorf("Querying sessions failed: %v", err)
@@ -94,7 +102,11 @@ type SessionInfo struct {
 	Cmds     []*Command `meddler:"-" json:"cmds"`
 }
 
-func GetSessionInfo(w http.ResponseWriter, r *http.Request) {
+type GetSessionInfoHandler struct {
+	DBStore *Store
+}
+
+func (h *GetSessionInfoHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	session, _ := store.Get(r, SESSIONNAME)
 
 	userID := ""
@@ -104,7 +116,7 @@ func GetSessionInfo(w http.ResponseWriter, r *http.Request) {
 
 	publicID := r.URL.Query().Get(":id")
 
-	result, err := dbStore.GetSessionInfoByPublicID(publicID, userID)
+	result, err := h.DBStore.GetSessionInfoByPublicID(publicID, userID)
 	if err != nil {
 		xlog.Errorf("Loading session information failed: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -115,7 +127,11 @@ func GetSessionInfo(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(result)
 }
 
-func StopSession(w http.ResponseWriter, r *http.Request) {
+type StopSessionHandler struct {
+	DBStore *Store
+}
+
+func (h *StopSessionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	session, _ := store.Get(r, SESSIONNAME)
 
 	if session.Values["userID"] == nil {
@@ -132,7 +148,7 @@ func StopSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	owner, _, err := dbStore.GetOwnerForSession(requestData.PublicID)
+	owner, _, err := h.DBStore.GetOwnerForSession(requestData.PublicID)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -144,12 +160,16 @@ func StopSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	dbStore.StopSession(requestData.PublicID)
+	h.DBStore.StopSession(requestData.PublicID)
 
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func DeleteSession(w http.ResponseWriter, r *http.Request) {
+type DeleteSessionHandler struct {
+	DBStore *Store
+}
+
+func (h *DeleteSessionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	session, _ := store.Get(r, SESSIONNAME)
 
 	if session.Values["userID"] == nil {
@@ -166,7 +186,7 @@ func DeleteSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	owner, _, err := dbStore.GetOwnerForSession(requestData.PublicID)
+	owner, _, err := h.DBStore.GetOwnerForSession(requestData.PublicID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -177,7 +197,7 @@ func DeleteSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	dbStore.DeleteSession(requestData.PublicID)
+	h.DBStore.DeleteSession(requestData.PublicID)
 
 	w.WriteHeader(http.StatusNoContent)
 }

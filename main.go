@@ -3,9 +3,9 @@ package main
 import (
 	"code.google.com/p/go.net/websocket"
 	"database/sql"
+	"github.com/bmizerany/pat"
 	"github.com/bradrydzewski/go.auth"
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/gorilla/pat"
 	"github.com/gorilla/sessions"
 	"github.com/joinmytalk/xlog"
 	"github.com/voxelbrain/goptions"
@@ -20,7 +20,6 @@ const (
 
 var (
 	store   sessions.Store
-	dbStore *Store
 	options = struct {
 		Addr                string `goptions:"-L, --listen, description='Listen address'"`
 		CookieKey           string `goptions:"-k, --key, description='Secret key for cookie store', obligatory"`
@@ -49,6 +48,8 @@ func main() {
 	auth.Config.CookieSecure = false
 
 	xlog.Debugf("Connecting to database %s...", options.DSN)
+
+	var dbStore *Store
 	if sqldb, err := sql.Open("mysql", options.DSN); err != nil {
 		xlog.Fatalf("sql.Open failed: %v", err)
 	} else {
@@ -70,16 +71,18 @@ func main() {
 	apiRouter.Get("/api/loggedin", http.HandlerFunc(LoggedIn))
 	apiRouter.Get("/api/connect", http.HandlerFunc(auth.SecureUser(Connect)))
 	apiRouter.Post("/api/disconnect", http.HandlerFunc(Disconnect))
-	apiRouter.Post("/api/upload", http.HandlerFunc(DoUpload))
-	apiRouter.Get("/api/getuploads", http.HandlerFunc(GetUploads))
-	apiRouter.Post("/api/renameupload", http.HandlerFunc(RenameUpload))
-	apiRouter.Post("/api/delupload", http.HandlerFunc(DeleteUpload))
-	apiRouter.Post("/api/startsession", http.HandlerFunc(StartSession))
-	apiRouter.Post("/api/stopsession", http.HandlerFunc(StopSession))
-	apiRouter.Post("/api/delsession", http.HandlerFunc(DeleteSession))
-	apiRouter.Get("/api/getsessions", http.HandlerFunc(GetSessions))
-	apiRouter.Get("/api/sessioninfo/{id}", http.HandlerFunc(GetSessionInfo))
-	mux.Handle("/api/ws", websocket.Handler(WebsocketHandler))
+	apiRouter.Post("/api/upload", &UploadHandler{DBStore: dbStore})
+	apiRouter.Get("/api/getuploads", &GetUploadsHandler{DBStore: dbStore})
+	apiRouter.Post("/api/renameupload", &RenameUploadHandler{DBStore: dbStore})
+	apiRouter.Post("/api/delupload", &DeleteUploadHandler{DBStore: dbStore})
+	apiRouter.Post("/api/startsession", &StartSessionHandler{DBStore: dbStore})
+	apiRouter.Post("/api/stopsession", &StopSessionHandler{DBStore: dbStore})
+	apiRouter.Post("/api/delsession", &DeleteSessionHandler{DBStore: dbStore})
+	apiRouter.Get("/api/getsessions", &GetSessionsHandler{DBStore: dbStore})
+	apiRouter.Get("/api/sessioninfo/:id", &GetSessionInfoHandler{DBStore: dbStore})
+	mux.Handle("/api/ws", websocket.Handler(func(c *websocket.Conn) {
+		WebsocketHandler(c, dbStore)
+	}))
 	mux.Handle("/api/", apiRouter)
 
 	// deliver index.html for AngularJS routes.

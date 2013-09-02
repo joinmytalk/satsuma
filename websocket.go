@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-func WebsocketHandler(s *websocket.Conn) {
+func WebsocketHandler(s *websocket.Conn, dbStore *Store) {
 	xlog.Infof("WebsocketHandler: opened connection")
 	r := s.Request()
 	session, _ := store.Get(r, SESSIONNAME)
@@ -31,13 +31,13 @@ func WebsocketHandler(s *websocket.Conn) {
 
 	if session.Values["userID"] == nil {
 		xlog.Errorf("WebsocketHandler is not authenticated -> slave handler")
-		slaveHandler(s, sessionID)
+		slaveHandler(s, sessionID, dbStore)
 	} else if owner == session.Values["userID"].(string) {
 		xlog.Infof("WebSocketHandler owner matches -> master handler")
-		masterHandler(s, sessionID)
+		masterHandler(s, sessionID, dbStore)
 	} else {
 		xlog.Infof("WebSocketHandler owner doesn't match -> slave handler")
-		slaveHandler(s, sessionID)
+		slaveHandler(s, sessionID, dbStore)
 	}
 }
 
@@ -54,7 +54,7 @@ type Command struct {
 	CanvasHeight int       `meddler:"canvas_height" json:"canvasHeight"`
 }
 
-func slaveHandler(s *websocket.Conn, sessionID int) {
+func slaveHandler(s *websocket.Conn, sessionID int, dbStore *Store) {
 	xlog.Debugf("entering SlaveHandler")
 	c, err := redis.Dial("tcp", options.RedisAddr)
 	if err != nil {
@@ -88,7 +88,7 @@ func slaveHandler(s *websocket.Conn, sessionID int) {
 	}
 }
 
-func masterHandler(s *websocket.Conn, sessionID int) {
+func masterHandler(s *websocket.Conn, sessionID int, dbStore *Store) {
 	xlog.Debugf("entering MasterHandler")
 	c, err := redis.Dial("tcp", options.RedisAddr)
 	if err != nil {
@@ -116,7 +116,7 @@ func masterHandler(s *websocket.Conn, sessionID int) {
 			}
 		}
 
-		executeCommand(cmd)
+		executeCommand(cmd, dbStore)
 
 		cmdJSON, _ := json.Marshal(cmd)
 
@@ -126,7 +126,7 @@ func masterHandler(s *websocket.Conn, sessionID int) {
 	xlog.Debugf("masterHandler: closing connection")
 }
 
-func executeCommand(cmd Command) {
+func executeCommand(cmd Command, dbStore *Store) {
 	switch cmd.Cmd {
 	case "clearSlide":
 		if err := dbStore.ClearSlide(cmd.SessionID, cmd.Page); err != nil {
