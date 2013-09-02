@@ -1,4 +1,4 @@
-var satsumaApp = angular.module('satsuma', [ 'ngUpload', 'directive.g+signin' ]);
+var satsumaApp = angular.module('satsuma', [ 'ngUpload' ]);
 
 satsumaApp.config(['$routeProvider', '$locationProvider', function($routeProvider, $locationProvider) {
 		$locationProvider.html5Mode(true);
