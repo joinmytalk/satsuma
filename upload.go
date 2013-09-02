@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"github.com/gorilla/sessions"
 	"github.com/joinmytalk/xlog"
 	"github.com/surma-dump/gouuid"
 	"io"
@@ -20,11 +21,12 @@ type Upload struct {
 }
 
 type UploadHandler struct {
-	DBStore *Store
+	SessionStore sessions.Store
+	DBStore      *Store
 }
 
 func (h *UploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	session, _ := store.Get(r, SESSIONNAME)
+	session, _ := h.SessionStore.Get(r, SESSIONNAME)
 
 	if session.Values["userID"] == nil {
 		http.Error(w, "authentication required", http.StatusForbidden)
@@ -73,11 +75,12 @@ func (h *UploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 type DeleteUploadHandler struct {
-	DBStore *Store
+	SessionStore sessions.Store
+	DBStore      *Store
 }
 
 func (h *DeleteUploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	session, _ := store.Get(r, SESSIONNAME)
+	session, _ := h.SessionStore.Get(r, SESSIONNAME)
 
 	if session.Values["userID"] == nil {
 		http.Error(w, "authentication required", http.StatusForbidden)
@@ -107,11 +110,12 @@ func (h *DeleteUploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 }
 
 type RenameUploadHandler struct {
-	DBStore *Store
+	SessionStore sessions.Store
+	DBStore      *Store
 }
 
 func (h *RenameUploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	session, _ := store.Get(r, SESSIONNAME)
+	session, _ := h.SessionStore.Get(r, SESSIONNAME)
 
 	if session.Values["userID"] == nil {
 		http.Error(w, "authentication required", http.StatusForbidden)
@@ -137,11 +141,12 @@ func (h *RenameUploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 }
 
 type GetUploadsHandler struct {
-	DBStore *Store
+	SessionStore sessions.Store
+	DBStore      *Store
 }
 
 func (h *GetUploadsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	session, _ := store.Get(r, SESSIONNAME)
+	session, _ := h.SessionStore.Get(r, SESSIONNAME)
 	userID := session.Values["userID"].(string)
 
 	result, err := h.DBStore.GetUploadsForUser(userID)

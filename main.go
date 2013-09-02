@@ -19,7 +19,6 @@ const (
 )
 
 var (
-	store   sessions.Store
 	options = struct {
 		Addr                string `goptions:"-L, --listen, description='Listen address'"`
 		CookieKey           string `goptions:"-k, --key, description='Secret key for cookie store', obligatory"`
@@ -41,7 +40,7 @@ func main() {
 	goptions.ParseAndFail(&options)
 
 	xlog.Debug("Creating cookie store...")
-	store = sessions.NewCookieStore([]byte(options.CookieKey))
+	sessionStore := sessions.NewCookieStore([]byte(options.CookieKey))
 
 	auth.Config.CookieSecret = []byte(options.CookieKey)
 	auth.Config.LoginSuccessRedirect = "/api/connect"
@@ -68,20 +67,22 @@ func main() {
 
 	// API calls.
 	apiRouter := pat.New()
-	apiRouter.Get("/api/loggedin", http.HandlerFunc(LoggedIn))
-	apiRouter.Get("/api/connect", http.HandlerFunc(auth.SecureUser(Connect)))
-	apiRouter.Post("/api/disconnect", http.HandlerFunc(Disconnect))
-	apiRouter.Post("/api/upload", &UploadHandler{DBStore: dbStore})
-	apiRouter.Get("/api/getuploads", &GetUploadsHandler{DBStore: dbStore})
-	apiRouter.Post("/api/renameupload", &RenameUploadHandler{DBStore: dbStore})
-	apiRouter.Post("/api/delupload", &DeleteUploadHandler{DBStore: dbStore})
-	apiRouter.Post("/api/startsession", &StartSessionHandler{DBStore: dbStore})
-	apiRouter.Post("/api/stopsession", &StopSessionHandler{DBStore: dbStore})
-	apiRouter.Post("/api/delsession", &DeleteSessionHandler{DBStore: dbStore})
-	apiRouter.Get("/api/getsessions", &GetSessionsHandler{DBStore: dbStore})
-	apiRouter.Get("/api/sessioninfo/:id", &GetSessionInfoHandler{DBStore: dbStore})
+	apiRouter.Get("/api/loggedin", &LoggedInHandler{SessionStore: sessionStore})
+	apiRouter.Get("/api/connect", http.HandlerFunc(auth.SecureUser(func(w http.ResponseWriter, r *http.Request, u auth.User) {
+		Connect(w, r, u, sessionStore)
+	})))
+	apiRouter.Post("/api/disconnect", &DisconnectHandler{SessionStore: sessionStore})
+	apiRouter.Post("/api/upload", &UploadHandler{SessionStore: sessionStore, DBStore: dbStore})
+	apiRouter.Get("/api/getuploads", &GetUploadsHandler{SessionStore: sessionStore, DBStore: dbStore})
+	apiRouter.Post("/api/renameupload", &RenameUploadHandler{SessionStore: sessionStore, DBStore: dbStore})
+	apiRouter.Post("/api/delupload", &DeleteUploadHandler{SessionStore: sessionStore, DBStore: dbStore})
+	apiRouter.Post("/api/startsession", &StartSessionHandler{SessionStore: sessionStore, DBStore: dbStore})
+	apiRouter.Post("/api/stopsession", &StopSessionHandler{SessionStore: sessionStore, DBStore: dbStore})
+	apiRouter.Post("/api/delsession", &DeleteSessionHandler{SessionStore: sessionStore, DBStore: dbStore})
+	apiRouter.Get("/api/getsessions", &GetSessionsHandler{SessionStore: sessionStore, DBStore: dbStore})
+	apiRouter.Get("/api/sessioninfo/:id", &GetSessionInfoHandler{SessionStore: sessionStore, DBStore: dbStore})
 	mux.Handle("/api/ws", websocket.Handler(func(c *websocket.Conn) {
-		WebsocketHandler(c, dbStore)
+		WebsocketHandler(c, dbStore, sessionStore)
 	}))
 	mux.Handle("/api/", apiRouter)
 

@@ -3,12 +3,13 @@ package main
 import (
 	"encoding/json"
 	"github.com/bradrydzewski/go.auth"
+	"github.com/gorilla/sessions"
 	"github.com/joinmytalk/xlog"
 	"net/http"
 )
 
-func Connect(w http.ResponseWriter, r *http.Request, u auth.User) {
-	session, err := store.Get(r, SESSIONNAME)
+func Connect(w http.ResponseWriter, r *http.Request, u auth.User, sessionStore sessions.Store) {
+	session, err := sessionStore.Get(r, SESSIONNAME)
 	if err != nil {
 		xlog.Errorf("Error fetching session: %v", err)
 		http.Error(w, "Error fetching session", 500)
@@ -27,9 +28,13 @@ func Connect(w http.ResponseWriter, r *http.Request, u auth.User) {
 	w.WriteHeader(http.StatusFound)
 }
 
-func Disconnect(w http.ResponseWriter, r *http.Request) {
+type DisconnectHandler struct {
+	SessionStore sessions.Store
+}
+
+func (h *DisconnectHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Only disconnect a connected user
-	session, err := store.Get(r, SESSIONNAME)
+	session, err := h.SessionStore.Get(r, SESSIONNAME)
 	if err != nil {
 		xlog.Errorf("Error fetching session: %v", err)
 		http.Error(w, "Error fetching session", 500)
@@ -49,9 +54,13 @@ func Disconnect(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func LoggedIn(w http.ResponseWriter, r *http.Request) {
+type LoggedInHandler struct {
+	SessionStore sessions.Store
+}
+
+func (h *LoggedInHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	jsonEncoder := json.NewEncoder(w)
-	session, err := store.Get(r, SESSIONNAME)
+	session, err := h.SessionStore.Get(r, SESSIONNAME)
 	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		jsonEncoder.Encode(map[string]bool{"logged_in": false})

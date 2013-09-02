@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"github.com/gorilla/sessions"
 	"github.com/joinmytalk/xlog"
 	"net/http"
 	"time"
@@ -16,11 +17,12 @@ type Session struct {
 }
 
 type StartSessionHandler struct {
-	DBStore *Store
+	DBStore      *Store
+	SessionStore sessions.Store
 }
 
 func (h *StartSessionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	session, _ := store.Get(r, SESSIONNAME)
+	session, _ := h.SessionStore.Get(r, SESSIONNAME)
 
 	if session.Values["userID"] == nil {
 		http.Error(w, "authentication required", http.StatusForbidden)
@@ -70,11 +72,12 @@ type SessionData struct {
 }
 
 type GetSessionsHandler struct {
-	DBStore *Store
+	SessionStore sessions.Store
+	DBStore      *Store
 }
 
 func (h *GetSessionsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	session, _ := store.Get(r, SESSIONNAME)
+	session, _ := h.SessionStore.Get(r, SESSIONNAME)
 
 	if session.Values["userID"] == nil {
 		http.Error(w, "authentication required", http.StatusForbidden)
@@ -103,11 +106,12 @@ type SessionInfo struct {
 }
 
 type GetSessionInfoHandler struct {
-	DBStore *Store
+	SessionStore sessions.Store
+	DBStore      *Store
 }
 
 func (h *GetSessionInfoHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	session, _ := store.Get(r, SESSIONNAME)
+	session, _ := h.SessionStore.Get(r, SESSIONNAME)
 
 	userID := ""
 	if session.Values["userID"] != nil {
@@ -128,11 +132,12 @@ func (h *GetSessionInfoHandler) ServeHTTP(w http.ResponseWriter, r *http.Request
 }
 
 type StopSessionHandler struct {
-	DBStore *Store
+	SessionStore sessions.Store
+	DBStore      *Store
 }
 
 func (h *StopSessionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	session, _ := store.Get(r, SESSIONNAME)
+	session, _ := h.SessionStore.Get(r, SESSIONNAME)
 
 	if session.Values["userID"] == nil {
 		http.Error(w, "authentication required", http.StatusForbidden)
@@ -166,11 +171,12 @@ func (h *StopSessionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 type DeleteSessionHandler struct {
-	DBStore *Store
+	SessionStore sessions.Store
+	DBStore      *Store
 }
 
 func (h *DeleteSessionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	session, _ := store.Get(r, SESSIONNAME)
+	session, _ := h.SessionStore.Get(r, SESSIONNAME)
 
 	if session.Values["userID"] == nil {
 		http.Error(w, "authentication required", http.StatusForbidden)

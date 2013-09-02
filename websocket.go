@@ -5,14 +5,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/garyburd/redigo/redis"
+	"github.com/gorilla/sessions"
 	"github.com/joinmytalk/xlog"
 	"time"
 )
 
-func WebsocketHandler(s *websocket.Conn, dbStore *Store) {
+func WebsocketHandler(s *websocket.Conn, dbStore *Store, sessionStore sessions.Store) {
 	xlog.Infof("WebsocketHandler: opened connection")
 	r := s.Request()
-	session, _ := store.Get(r, SESSIONNAME)
+	session, _ := sessionStore.Get(r, SESSIONNAME)
 
 	sessionData := struct {
 		SessionID string `json:"session_id"`
