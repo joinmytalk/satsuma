@@ -151,7 +151,7 @@ func Disconnect(w http.ResponseWriter, r *http.Request) {
 	// Only disconnect a connected user
 	session, err := store.Get(r, SESSION_NAME)
 	if err != nil {
-		xlog.Error("Error fetching session: %v", err)
+		xlog.Errorf("Error fetching session: %v", err)
 		http.Error(w, "Error fetching session", 500)
 		return
 	}
@@ -181,7 +181,7 @@ func LoggedIn(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		jsonEncoder.Encode(map[string]bool{"logged_in": false})
-		xlog.Error("Error fetching session: %v", err)
+		xlog.Errorf("Error fetching session: %v", err)
 		return
 	}
 

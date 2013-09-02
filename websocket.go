@@ -69,7 +69,7 @@ func slaveHandler(s *websocket.Conn, sessionID int) {
 	}
 	defer c.Close()
 
-	psc := redis.PubSubConn{c}
+	psc := redis.PubSubConn{Conn: c}
 	topic := fmt.Sprintf("session.%d", sessionID)
 	psc.Subscribe(topic)
 	defer psc.Unsubscribe(topic)
