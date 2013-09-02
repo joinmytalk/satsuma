@@ -21,7 +21,7 @@ type Upload struct {
 }
 
 func DoUpload(w http.ResponseWriter, r *http.Request) {
-	session, _ := store.Get(r, SESSION_NAME)
+	session, _ := store.Get(r, SESSIONNAME)
 
 	if session.Values["userID"] == nil {
 		http.Error(w, "authentication required", http.StatusForbidden)
@@ -43,15 +43,15 @@ func DoUpload(w http.ResponseWriter, r *http.Request) {
 	id := generateID()
 
 	filename := path.Join(options.UploadDir, id+".pdf")
-	if f, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE, 0644); err != nil {
+	f, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE, 0644)
+	if err != nil {
 		http.Error(w, "couldn't open file for writing", http.StatusInternalServerError)
 		return
-	} else {
-		defer f.Close()
+	}
+	defer f.Close()
 
-		if _, err := io.Copy(f, file); err != nil {
-			xlog.Errorf("Writing file %s failed: %v", filename, err)
-		}
+	if _, err := io.Copy(f, file); err != nil {
+		xlog.Errorf("Writing file %s failed: %v", filename, err)
 	}
 
 	if err := meddler.Insert(sqlDB, "uploads", &Upload{
@@ -70,7 +70,7 @@ func DoUpload(w http.ResponseWriter, r *http.Request) {
 }
 
 func DeleteUpload(w http.ResponseWriter, r *http.Request) {
-	session, _ := store.Get(r, SESSION_NAME)
+	session, _ := store.Get(r, SESSIONNAME)
 
 	if session.Values["userID"] == nil {
 		http.Error(w, "authentication required", http.StatusForbidden)
@@ -100,7 +100,7 @@ func DeleteUpload(w http.ResponseWriter, r *http.Request) {
 }
 
 func RenameUpload(w http.ResponseWriter, r *http.Request) {
-	session, _ := store.Get(r, SESSION_NAME)
+	session, _ := store.Get(r, SESSIONNAME)
 
 	if session.Values["userID"] == nil {
 		http.Error(w, "authentication required", http.StatusForbidden)

@@ -15,20 +15,8 @@ import (
 )
 
 const (
-	SESSION_NAME = "SATSUMA_COOKIE"
+	SESSIONNAME = "SATSUMA_COOKIE"
 )
-
-type Token struct {
-	AccessToken string `json:"access_token"`
-	TokenType   string `json:"token_type"`
-	ExpiresIn   int    `json:"expires_in"`
-	IdToken     string `json:"id_token"`
-}
-
-// ClaimSet represents an IdToken response.
-type ClaimSet struct {
-	Sub string
-}
 
 var (
 	store   sessions.Store

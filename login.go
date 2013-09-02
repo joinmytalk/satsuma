@@ -8,7 +8,7 @@ import (
 )
 
 func Connect(w http.ResponseWriter, r *http.Request, u auth.User) {
-	session, err := store.Get(r, SESSION_NAME)
+	session, err := store.Get(r, SESSIONNAME)
 	if err != nil {
 		xlog.Errorf("Error fetching session: %v", err)
 		http.Error(w, "Error fetching session", 500)
@@ -29,7 +29,7 @@ func Connect(w http.ResponseWriter, r *http.Request, u auth.User) {
 
 func Disconnect(w http.ResponseWriter, r *http.Request) {
 	// Only disconnect a connected user
-	session, err := store.Get(r, SESSION_NAME)
+	session, err := store.Get(r, SESSIONNAME)
 	if err != nil {
 		xlog.Errorf("Error fetching session: %v", err)
 		http.Error(w, "Error fetching session", 500)
@@ -51,7 +51,7 @@ func Disconnect(w http.ResponseWriter, r *http.Request) {
 
 func LoggedIn(w http.ResponseWriter, r *http.Request) {
 	jsonEncoder := json.NewEncoder(w)
-	session, err := store.Get(r, SESSION_NAME)
+	session, err := store.Get(r, SESSIONNAME)
 	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		jsonEncoder.Encode(map[string]bool{"logged_in": false})

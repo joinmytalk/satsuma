@@ -17,7 +17,7 @@ type Session struct {
 }
 
 func StartSession(w http.ResponseWriter, r *http.Request) {
-	session, _ := store.Get(r, SESSION_NAME)
+	session, _ := store.Get(r, SESSIONNAME)
 
 	if session.Values["userID"] == nil {
 		http.Error(w, "authentication required", http.StatusForbidden)
@@ -59,7 +59,7 @@ func StartSession(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetSessions(w http.ResponseWriter, r *http.Request) {
-	session, _ := store.Get(r, SESSION_NAME)
+	session, _ := store.Get(r, SESSIONNAME)
 
 	if session.Values["userID"] == nil {
 		http.Error(w, "authentication required", http.StatusForbidden)
@@ -93,7 +93,7 @@ func GetSessions(w http.ResponseWriter, r *http.Request) {
 }
 
 func SessionInfo(w http.ResponseWriter, r *http.Request) {
-	session, _ := store.Get(r, SESSION_NAME)
+	session, _ := store.Get(r, SESSIONNAME)
 
 	userID := ""
 	if session.Values["userID"] != nil {
@@ -159,7 +159,7 @@ func SessionInfo(w http.ResponseWriter, r *http.Request) {
 }
 
 func StopSession(w http.ResponseWriter, r *http.Request) {
-	session, _ := store.Get(r, SESSION_NAME)
+	session, _ := store.Get(r, SESSIONNAME)
 
 	if session.Values["userID"] == nil {
 		http.Error(w, "authentication required", http.StatusForbidden)
@@ -195,7 +195,7 @@ func StopSession(w http.ResponseWriter, r *http.Request) {
 }
 
 func DeleteSession(w http.ResponseWriter, r *http.Request) {
-	session, _ := store.Get(r, SESSION_NAME)
+	session, _ := store.Get(r, SESSIONNAME)
 
 	if session.Values["userID"] == nil {
 		http.Error(w, "authentication required", http.StatusForbidden)

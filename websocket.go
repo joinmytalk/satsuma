@@ -13,7 +13,7 @@ import (
 func WebsocketHandler(s *websocket.Conn) {
 	xlog.Infof("WebsocketHandler: opened connection")
 	r := s.Request()
-	session, _ := store.Get(r, SESSION_NAME)
+	session, _ := store.Get(r, SESSIONNAME)
 
 	sessionData := struct {
 		SessionID string `json:"session_id"`

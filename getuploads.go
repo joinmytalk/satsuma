@@ -8,7 +8,7 @@ import (
 )
 
 func GetUploads(w http.ResponseWriter, r *http.Request) {
-	session, _ := store.Get(r, SESSION_NAME)
+	session, _ := store.Get(r, SESSIONNAME)
 	userID := session.Values["userID"]
 
 	result := []*Upload{}
