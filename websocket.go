@@ -35,10 +35,10 @@ func WebsocketHandler(s *websocket.Conn) {
 		return
 	}
 
-	if session.Values["gplusID"] == nil {
+	if session.Values["userID"] == nil {
 		xlog.Errorf("WebsocketHandler is not authenticated -> slave handler")
 		slaveHandler(s, ownerData.ID)
-	} else if ownerData.Owner == session.Values["gplusID"].(string) {
+	} else if ownerData.Owner == session.Values["userID"].(string) {
 		xlog.Infof("WebSocketHandler owner matches -> master handler")
 		masterHandler(s, ownerData.ID)
 	} else {

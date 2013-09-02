@@ -23,7 +23,7 @@ type Upload struct {
 func DoUpload(w http.ResponseWriter, r *http.Request) {
 	session, _ := store.Get(r, SESSION_NAME)
 
-	if session.Values["gplusID"] == nil {
+	if session.Values["userID"] == nil {
 		http.Error(w, "authentication required", http.StatusForbidden)
 		return
 	}
@@ -56,7 +56,7 @@ func DoUpload(w http.ResponseWriter, r *http.Request) {
 
 	if err := meddler.Insert(sqlDB, "uploads", &Upload{
 		PublicID: id,
-		Owner:    session.Values["gplusID"].(string),
+		Owner:    session.Values["userID"].(string),
 		Title:    title,
 		Uploaded: time.Now(),
 	}); err != nil {
@@ -72,7 +72,7 @@ func DoUpload(w http.ResponseWriter, r *http.Request) {
 func DeleteUpload(w http.ResponseWriter, r *http.Request) {
 	session, _ := store.Get(r, SESSION_NAME)
 
-	if session.Values["gplusID"] == nil {
+	if session.Values["userID"] == nil {
 		http.Error(w, "authentication required", http.StatusForbidden)
 		return
 	}
@@ -86,7 +86,7 @@ func DeleteUpload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := sqlDB.Exec("DELETE FROM uploads WHERE public_id = ? AND owner = ?", requestData.UploadID, session.Values["gplusID"].(string))
+	result, err := sqlDB.Exec("DELETE FROM uploads WHERE public_id = ? AND owner = ?", requestData.UploadID, session.Values["userID"].(string))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -102,7 +102,7 @@ func DeleteUpload(w http.ResponseWriter, r *http.Request) {
 func RenameUpload(w http.ResponseWriter, r *http.Request) {
 	session, _ := store.Get(r, SESSION_NAME)
 
-	if session.Values["gplusID"] == nil {
+	if session.Values["userID"] == nil {
 		http.Error(w, "authentication required", http.StatusForbidden)
 		return
 	}
@@ -117,7 +117,7 @@ func RenameUpload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err := sqlDB.Exec("UPDATE uploads SET title = ? WHERE public_id = ? AND owner = ?", requestData.NewTitle, requestData.UploadID, session.Values["gplusID"].(string))
+	_, err := sqlDB.Exec("UPDATE uploads SET title = ? WHERE public_id = ? AND owner = ?", requestData.NewTitle, requestData.UploadID, session.Values["userID"].(string))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

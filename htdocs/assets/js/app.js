@@ -1,14 +1,13 @@
-var satsumaApp = angular.module('satsuma', [ 'ngUpload', 'directive.g+signin' ]);
+var satsumaApp = angular.module('satsuma', [ 'ngUpload' ]);
 
 satsumaApp.config(['$routeProvider', '$locationProvider', function($routeProvider, $locationProvider) {
-		// TODO: configure routes
 		$locationProvider.html5Mode(true);
 
 		$routeProvider.when('/', { templateUrl: '/assets/partials/main.html', controller: 'MainCtrl' });
 		$routeProvider.when('/v/:uploadid', { templateUrl: '/assets/partials/pdfviewer.html', controller: 'PDFViewCtrl' });
 		$routeProvider.when('/s/:sessionid', { templateUrl: '/assets/partials/pdfviewer.html', controller: 'PDFViewCtrl' });
 
-		$routeProvider.otherwise({ redirectTo: '/' });
+		//$routeProvider.otherwise({ redirectTo: '/' });
 	}
 ]);
 

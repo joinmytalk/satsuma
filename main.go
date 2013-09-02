@@ -3,6 +3,7 @@ package main
 import (
 	"code.google.com/p/go.net/websocket"
 	"database/sql"
+	"github.com/bradrydzewski/go.auth"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/pat"
 	"github.com/gorilla/sessions"
@@ -33,14 +34,16 @@ var (
 	store   sessions.Store
 	sqlDB   *sql.DB
 	options = struct {
-		Addr         string `goptions:"-L, --listen, description='Listen address'"`
-		CookieKey    string `goptions:"-k, --key, description='Secret key for cookie store', obligatory"`
-		ClientID     string `goptions:"--clientid, description='Client ID', obligatory"`
-		ClientSecret string `goptions:"--clientsecret, description='Client Secret', obligatory"`
-		DSN          string `goptions:"--dsn, description='MySQL DSN string', obligatory"`
-		HtdocsDir    string `goptions:"--htdocs, description='htdocs directory', obligatory"`
-		UploadDir    string `goptions:"--uploaddir, description='Upload directory', obligatory"`
-		RedisAddr    string `goptions:"--redis, description='redis address', obligatory"`
+		Addr                string `goptions:"-L, --listen, description='Listen address'"`
+		CookieKey           string `goptions:"-k, --key, description='Secret key for cookie store', obligatory"`
+		GplusClientID       string `goptions:"--gplusclientid, description='Google+ Client ID', obligatory"`
+		GplusClientSecret   string `goptions:"--gplusclientsecret, description='Google+ Client Secret', obligatory"`
+		TwitterClientKey    string `goptions:"--twitterclientkey, description='Twitter Client Key', obligatory"`
+		TwitterClientSecret string `goptions:"--twitterclientsecret, description='Twitter Client Secret', obligatory"`
+		DSN                 string `goptions:"--dsn, description='MySQL DSN string', obligatory"`
+		HtdocsDir           string `goptions:"--htdocs, description='htdocs directory', obligatory"`
+		UploadDir           string `goptions:"--uploaddir, description='Upload directory', obligatory"`
+		RedisAddr           string `goptions:"--redis, description='redis address', obligatory"`
 	}{
 		Addr:      "[::]:8080",
 		RedisAddr: ":6379",
@@ -52,6 +55,10 @@ func main() {
 
 	xlog.Debug("Creating cookie store...")
 	store = sessions.NewCookieStore([]byte(options.CookieKey))
+
+	auth.Config.CookieSecret = []byte(options.CookieKey)
+	auth.Config.LoginSuccessRedirect = "/api/connect"
+	auth.Config.CookieSecure = false
 
 	xlog.Debugf("Connecting to database %s...", options.DSN)
 	if sqldb, err := sql.Open("mysql", options.DSN); err != nil {
@@ -66,10 +73,13 @@ func main() {
 	xlog.Debugf("Setting up HTTP server...")
 	mux := http.NewServeMux()
 
+	mux.Handle("/auth/gplus", auth.Google(options.GplusClientID, options.GplusClientSecret, "http://localhost:8080/auth/gplus"))
+	mux.Handle("/auth/twitter", auth.Twitter(options.TwitterClientKey, options.TwitterClientSecret, "http://localhost:8080/auth/twitter"))
+
 	// API calls.
 	apiRouter := pat.New()
 	apiRouter.Get("/api/loggedin", http.HandlerFunc(LoggedIn))
-	apiRouter.Post("/api/connect", http.HandlerFunc(Connect))
+	apiRouter.Get("/api/connect", http.HandlerFunc(auth.SecureUser(Connect)))
 	apiRouter.Post("/api/disconnect", http.HandlerFunc(Disconnect))
 	apiRouter.Post("/api/upload", http.HandlerFunc(DoUpload))
 	apiRouter.Get("/api/getuploads", http.HandlerFunc(GetUploads))
