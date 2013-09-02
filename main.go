@@ -73,6 +73,7 @@ func main() {
 	apiRouter.Post("/api/disconnect", http.HandlerFunc(Disconnect))
 	apiRouter.Post("/api/upload", http.HandlerFunc(DoUpload))
 	apiRouter.Get("/api/getuploads", http.HandlerFunc(GetUploads))
+	apiRouter.Post("/api/renameupload", http.HandlerFunc(RenameUpload))
 	apiRouter.Post("/api/delupload", http.HandlerFunc(DeleteUpload))
 	apiRouter.Post("/api/startsession", http.HandlerFunc(StartSession))
 	apiRouter.Post("/api/stopsession", http.HandlerFunc(StopSession))

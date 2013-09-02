@@ -449,6 +449,7 @@ satsumaApp.controller('MainCtrl', ['$scope', '$http', '$rootScope', function($sc
 	$scope.error = null;
 	$scope.uploads = [ ];
 	$scope.sessions = [ ];
+	$scope.saved_titles = [ ];
 	$scope.loading_uploads = false;
 	$scope.loading_sessions = false;
 
@@ -497,6 +498,28 @@ satsumaApp.controller('MainCtrl', ['$scope', '$http', '$rootScope', function($sc
 		}).
 		error(function() {
 			console.log('deleting upload failed');
+		});
+	};
+
+	$scope.renameUpload = function(idx) {
+		$scope.saved_titles[idx] = $scope.uploads[idx].title;
+		$scope.uploads[idx].renaming = true;
+	};
+
+	$scope.cancelUploadRename = function(idx) {
+		$scope.uploads[idx].title = $scope.saved_titles[idx];
+		$scope.uploads[idx].renaming = false;
+	};
+
+	$scope.saveUploadRename = function(idx) {
+		$http.post('/api/renameupload', { "upload_id": $scope.uploads[idx]._id, "new_title": $scope.uploads[idx].title }).
+		success(function(data, status, headers, config) {
+			$scope.getSessions();
+			$scope.uploads[idx].renaming = false;
+		}).
+		error(function() {
+			console.log('renaming upload failed');
+			$scope.uploads[idx].renaming = false;
 		});
 	};
 
