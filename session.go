@@ -19,7 +19,7 @@ type Session struct {
 func StartSession(w http.ResponseWriter, r *http.Request) {
 	session, _ := store.Get(r, SESSION_NAME)
 
-	if session.Values["gplusID"] == nil {
+	if session.Values["userID"] == nil {
 		http.Error(w, "authentication required", http.StatusForbidden)
 		return
 	}
@@ -36,7 +36,7 @@ func StartSession(w http.ResponseWriter, r *http.Request) {
 
 	var uploadEntry Upload
 
-	if err := meddler.QueryRow(sqlDB, &uploadEntry, "select id from uploads where public_id = ? and owner = ?", data.UploadID, session.Values["gplusID"]); err != nil {
+	if err := meddler.QueryRow(sqlDB, &uploadEntry, "select id from uploads where public_id = ? and owner = ?", data.UploadID, session.Values["userID"]); err != nil {
 		xlog.Errorf("Querying upload %s failed: %v", data.UploadID, err)
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -61,7 +61,7 @@ func StartSession(w http.ResponseWriter, r *http.Request) {
 func GetSessions(w http.ResponseWriter, r *http.Request) {
 	session, _ := store.Get(r, SESSION_NAME)
 
-	if session.Values["gplusID"] == nil {
+	if session.Values["userID"] == nil {
 		http.Error(w, "authentication required", http.StatusForbidden)
 		return
 	}
@@ -74,7 +74,7 @@ func GetSessions(w http.ResponseWriter, r *http.Request) {
 		EndedJSON string    `meddler:"-" json:"ended,omitempty"`
 	}{}
 
-	if err := meddler.QueryAll(sqlDB, &result, "select sessions.public_id as public_id, sessions.started as started, sessions.ended as ended, uploads.title as title  from uploads, sessions where sessions.upload_id = uploads.id and uploads.owner = ? order by sessions.started desc", session.Values["gplusID"]); err != nil {
+	if err := meddler.QueryAll(sqlDB, &result, "select sessions.public_id as public_id, sessions.started as started, sessions.ended as ended, uploads.title as title  from uploads, sessions where sessions.upload_id = uploads.id and uploads.owner = ? order by sessions.started desc", session.Values["userID"]); err != nil {
 		xlog.Errorf("Querying sessions failed: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -95,9 +95,9 @@ func GetSessions(w http.ResponseWriter, r *http.Request) {
 func SessionInfo(w http.ResponseWriter, r *http.Request) {
 	session, _ := store.Get(r, SESSION_NAME)
 
-	gplusID := ""
-	if session.Values["gplusID"] != nil {
-		gplusID = session.Values["gplusID"].(string)
+	userID := ""
+	if session.Values["userID"] != nil {
+		userID = session.Values["userID"].(string)
 	}
 
 	id := r.URL.Query().Get(":id")
@@ -123,8 +123,8 @@ func SessionInfo(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	xlog.Debugf("SessionInfo: Owner = %s gplusID = %s", result.Owner, gplusID)
-	result.IsOwner = (gplusID != "" && result.Owner == gplusID)
+	xlog.Debugf("SessionInfo: Owner = %s userID = %s", result.Owner, userID)
+	result.IsOwner = (userID != "" && result.Owner == userID)
 
 	xlog.Debugf("SessionInfo: retrieved basic data")
 
@@ -161,7 +161,7 @@ func SessionInfo(w http.ResponseWriter, r *http.Request) {
 func StopSession(w http.ResponseWriter, r *http.Request) {
 	session, _ := store.Get(r, SESSION_NAME)
 
-	if session.Values["gplusID"] == nil {
+	if session.Values["userID"] == nil {
 		http.Error(w, "authentication required", http.StatusForbidden)
 		return
 	}
@@ -184,7 +184,7 @@ func StopSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if ownerData.Owner != session.Values["gplusID"].(string) {
+	if ownerData.Owner != session.Values["userID"].(string) {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
@@ -197,7 +197,7 @@ func StopSession(w http.ResponseWriter, r *http.Request) {
 func DeleteSession(w http.ResponseWriter, r *http.Request) {
 	session, _ := store.Get(r, SESSION_NAME)
 
-	if session.Values["gplusID"] == nil {
+	if session.Values["userID"] == nil {
 		http.Error(w, "authentication required", http.StatusForbidden)
 		return
 	}
@@ -220,7 +220,7 @@ func DeleteSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if ownerData.Owner != session.Values["gplusID"].(string) {
+	if ownerData.Owner != session.Values["userID"].(string) {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
