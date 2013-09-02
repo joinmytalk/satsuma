@@ -20,7 +20,7 @@ const (
 
 var (
 	store   sessions.Store
-	sqlDB   *sql.DB
+	dbStore *Store
 	options = struct {
 		Addr                string `goptions:"-L, --listen, description='Listen address'"`
 		CookieKey           string `goptions:"-k, --key, description='Secret key for cookie store', obligatory"`
@@ -52,7 +52,7 @@ func main() {
 	if sqldb, err := sql.Open("mysql", options.DSN); err != nil {
 		xlog.Fatalf("sql.Open failed: %v", err)
 	} else {
-		sqlDB = sqldb
+		dbStore = NewStore(sqldb)
 	}
 
 	xlog.Debugf("Creating upload directory %s...", options.UploadDir)
@@ -61,6 +61,7 @@ func main() {
 	xlog.Debugf("Setting up HTTP server...")
 	mux := http.NewServeMux()
 
+	// auth calls
 	mux.Handle("/auth/gplus", auth.Google(options.GplusClientID, options.GplusClientSecret, "http://localhost:8080/auth/gplus"))
 	mux.Handle("/auth/twitter", auth.Twitter(options.TwitterClientKey, options.TwitterClientSecret, "http://localhost:8080/auth/twitter"))
 
@@ -77,7 +78,7 @@ func main() {
 	apiRouter.Post("/api/stopsession", http.HandlerFunc(StopSession))
 	apiRouter.Post("/api/delsession", http.HandlerFunc(DeleteSession))
 	apiRouter.Get("/api/getsessions", http.HandlerFunc(GetSessions))
-	apiRouter.Get("/api/sessioninfo/{id}", http.HandlerFunc(SessionInfo))
+	apiRouter.Get("/api/sessioninfo/{id}", http.HandlerFunc(GetSessionInfo))
 	mux.Handle("/api/ws", websocket.Handler(WebsocketHandler))
 	mux.Handle("/api/", apiRouter)
 

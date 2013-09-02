@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/garyburd/redigo/redis"
 	"github.com/joinmytalk/xlog"
-	"github.com/russross/meddler"
 	"time"
 )
 
@@ -24,26 +23,21 @@ func WebsocketHandler(s *websocket.Conn) {
 		return
 	}
 
-	ownerData := struct {
-		Owner string `meddler:"owner"`
-		ID    int    `meddler:"session_id"`
-	}{}
-
-	if err := meddler.QueryRow(sqlDB, &ownerData,
-		"SELECT uploads.owner AS owner, sessions.id AS session_id FROM uploads, sessions WHERE uploads.id = sessions.upload_id AND sessions.public_id = ? LIMIT 1", sessionData.SessionID); err != nil {
-		xlog.Errorf("meddler.QueryRow failed: %v", err)
+	owner, sessionID, err := dbStore.GetOwnerForSession(sessionData.SessionID)
+	if err != nil {
+		xlog.Errorf("GetOwnerForSession failed: %v", err)
 		return
 	}
 
 	if session.Values["userID"] == nil {
 		xlog.Errorf("WebsocketHandler is not authenticated -> slave handler")
-		slaveHandler(s, ownerData.ID)
-	} else if ownerData.Owner == session.Values["userID"].(string) {
+		slaveHandler(s, sessionID)
+	} else if owner == session.Values["userID"].(string) {
 		xlog.Infof("WebSocketHandler owner matches -> master handler")
-		masterHandler(s, ownerData.ID)
+		masterHandler(s, sessionID)
 	} else {
 		xlog.Infof("WebSocketHandler owner doesn't match -> slave handler")
-		slaveHandler(s, ownerData.ID)
+		slaveHandler(s, sessionID)
 	}
 }
 
@@ -116,7 +110,7 @@ func masterHandler(s *websocket.Conn, sessionID int) {
 		cmd.Timestamp = time.Now()
 
 		if cmd.Cmd != "clearSlide" {
-			if err := meddler.Insert(sqlDB, "commands", &cmd); err != nil {
+			if err := dbStore.InsertCommand(&cmd); err != nil {
 				xlog.Errorf("Inserting command failed: %v", err)
 				break
 			}
@@ -135,7 +129,7 @@ func masterHandler(s *websocket.Conn, sessionID int) {
 func executeCommand(cmd Command) {
 	switch cmd.Cmd {
 	case "clearSlide":
-		if _, err := sqlDB.Exec("DELETE FROM commands WHERE session_id = ? AND page = ? AND cmd != 'gotoPage'", cmd.SessionID, cmd.Page); err != nil {
+		if err := dbStore.ClearSlide(cmd.SessionID, cmd.Page); err != nil {
 			xlog.Errorf("clearSlide for %d page %d failed: %v", cmd.SessionID, cmd.Page, err)
 		}
 	}

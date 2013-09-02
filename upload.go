@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"github.com/joinmytalk/xlog"
-	"github.com/russross/meddler"
 	"github.com/surma-dump/gouuid"
 	"io"
 	"net/http"
@@ -54,7 +53,7 @@ func DoUpload(w http.ResponseWriter, r *http.Request) {
 		xlog.Errorf("Writing file %s failed: %v", filename, err)
 	}
 
-	if err := meddler.Insert(sqlDB, "uploads", &Upload{
+	if err := dbStore.InsertUpload(&Upload{
 		PublicID: id,
 		Owner:    session.Values["userID"].(string),
 		Title:    title,
@@ -86,13 +85,13 @@ func DeleteUpload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := sqlDB.Exec("DELETE FROM uploads WHERE public_id = ? AND owner = ?", requestData.UploadID, session.Values["userID"].(string))
+	rowsAffected, err := dbStore.DeleteUploadByPublicID(requestData.UploadID, session.Values["userID"].(string))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	if rowsAffected, err := result.RowsAffected(); err == nil && rowsAffected != 0 {
+	if rowsAffected > 0 {
 		os.Remove(path.Join(options.UploadDir, requestData.UploadID+".pdf"))
 	}
 
@@ -117,8 +116,7 @@ func RenameUpload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err := sqlDB.Exec("UPDATE uploads SET title = ? WHERE public_id = ? AND owner = ?", requestData.NewTitle, requestData.UploadID, session.Values["userID"].(string))
-	if err != nil {
+	if err := dbStore.SetTitleForPresentation(requestData.NewTitle, requestData.UploadID, session.Values["userID"].(string)); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}

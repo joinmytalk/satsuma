@@ -3,16 +3,15 @@ package main
 import (
 	"encoding/json"
 	"github.com/joinmytalk/xlog"
-	"github.com/russross/meddler"
 	"net/http"
 )
 
 func GetUploads(w http.ResponseWriter, r *http.Request) {
 	session, _ := store.Get(r, SESSIONNAME)
-	userID := session.Values["userID"]
+	userID := session.Values["userID"].(string)
 
-	result := []*Upload{}
-	if err := meddler.QueryAll(sqlDB, &result, "select * from uploads where owner = ?", userID); err != nil {
+	result, err := dbStore.GetUploadsForUser(userID)
+	if err != nil {
 		xlog.Errorf("Couldn't query uploads: %v", err)
 		http.Error(w, "query failed", http.StatusInternalServerError)
 		return
