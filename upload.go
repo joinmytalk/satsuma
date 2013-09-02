@@ -5,10 +5,7 @@ import (
 	"github.com/gorilla/sessions"
 	"github.com/joinmytalk/xlog"
 	"github.com/surma-dump/gouuid"
-	"io"
 	"net/http"
-	"os"
-	"path"
 	"time"
 )
 
@@ -23,6 +20,7 @@ type Upload struct {
 type UploadHandler struct {
 	SessionStore sessions.Store
 	DBStore      *Store
+	UploadStore  *FileUploadStore
 }
 
 func (h *UploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -47,16 +45,10 @@ func (h *UploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	id := generateID()
 
-	filename := path.Join(options.UploadDir, id+".pdf")
-	f, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE, 0644)
-	if err != nil {
-		http.Error(w, "couldn't open file for writing", http.StatusInternalServerError)
+	if err := h.UploadStore.Store(id, file); err != nil {
+		xlog.Errorf("Storing file for upload %s failed: %v", id, err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
-	}
-	defer f.Close()
-
-	if _, err := io.Copy(f, file); err != nil {
-		xlog.Errorf("Writing file %s failed: %v", filename, err)
 	}
 
 	if err := h.DBStore.InsertUpload(&Upload{
@@ -77,6 +69,7 @@ func (h *UploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 type DeleteUploadHandler struct {
 	SessionStore sessions.Store
 	DBStore      *Store
+	UploadStore  *FileUploadStore
 }
 
 func (h *DeleteUploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -103,7 +96,7 @@ func (h *DeleteUploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 	}
 
 	if rowsAffected > 0 {
-		os.Remove(path.Join(options.UploadDir, requestData.UploadID+".pdf"))
+		h.UploadStore.Remove(requestData.UploadID)
 	}
 
 	w.WriteHeader(http.StatusNoContent)

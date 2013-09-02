@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-func WebsocketHandler(s *websocket.Conn, dbStore *Store, sessionStore sessions.Store) {
+func WebsocketHandler(s *websocket.Conn, dbStore *Store, sessionStore sessions.Store, redisAddr string) {
 	xlog.Infof("WebsocketHandler: opened connection")
 	r := s.Request()
 	session, _ := sessionStore.Get(r, SESSIONNAME)
@@ -32,13 +32,13 @@ func WebsocketHandler(s *websocket.Conn, dbStore *Store, sessionStore sessions.S
 
 	if session.Values["userID"] == nil {
 		xlog.Errorf("WebsocketHandler is not authenticated -> slave handler")
-		slaveHandler(s, sessionID, dbStore)
+		slaveHandler(s, sessionID, dbStore, redisAddr)
 	} else if owner == session.Values["userID"].(string) {
 		xlog.Infof("WebSocketHandler owner matches -> master handler")
-		masterHandler(s, sessionID, dbStore)
+		masterHandler(s, sessionID, dbStore, redisAddr)
 	} else {
 		xlog.Infof("WebSocketHandler owner doesn't match -> slave handler")
-		slaveHandler(s, sessionID, dbStore)
+		slaveHandler(s, sessionID, dbStore, redisAddr)
 	}
 }
 
@@ -55,9 +55,9 @@ type Command struct {
 	CanvasHeight int       `meddler:"canvas_height" json:"canvasHeight"`
 }
 
-func slaveHandler(s *websocket.Conn, sessionID int, dbStore *Store) {
+func slaveHandler(s *websocket.Conn, sessionID int, dbStore *Store, redisAddr string) {
 	xlog.Debugf("entering SlaveHandler")
-	c, err := redis.Dial("tcp", options.RedisAddr)
+	c, err := redis.Dial("tcp", redisAddr)
 	if err != nil {
 		xlog.Errorf("redis.Dial failed: %v", err)
 		return
@@ -89,9 +89,9 @@ func slaveHandler(s *websocket.Conn, sessionID int, dbStore *Store) {
 	}
 }
 
-func masterHandler(s *websocket.Conn, sessionID int, dbStore *Store) {
+func masterHandler(s *websocket.Conn, sessionID int, dbStore *Store, redisAddr string) {
 	xlog.Debugf("entering MasterHandler")
-	c, err := redis.Dial("tcp", options.RedisAddr)
+	c, err := redis.Dial("tcp", redisAddr)
 	if err != nil {
 		xlog.Errorf("redis.Dial failed: %v", err)
 		return

@@ -18,8 +18,8 @@ const (
 	SESSIONNAME = "SATSUMA_COOKIE"
 )
 
-var (
-	options = struct {
+func main() {
+	options := struct {
 		Addr                string `goptions:"-L, --listen, description='Listen address'"`
 		CookieKey           string `goptions:"-k, --key, description='Secret key for cookie store', obligatory"`
 		GplusClientID       string `goptions:"--gplusclientid, description='Google+ Client ID', obligatory"`
@@ -34,9 +34,6 @@ var (
 		Addr:      "[::]:8080",
 		RedisAddr: ":6379",
 	}
-)
-
-func main() {
 	goptions.ParseAndFail(&options)
 
 	xlog.Debug("Creating cookie store...")
@@ -72,7 +69,7 @@ func main() {
 		Connect(w, r, u, sessionStore)
 	})))
 	apiRouter.Post("/api/disconnect", &DisconnectHandler{SessionStore: sessionStore})
-	apiRouter.Post("/api/upload", &UploadHandler{SessionStore: sessionStore, DBStore: dbStore})
+	apiRouter.Post("/api/upload", &UploadHandler{SessionStore: sessionStore, DBStore: dbStore, UploadStore: &FileUploadStore{UploadDir: options.UploadDir}})
 	apiRouter.Get("/api/getuploads", &GetUploadsHandler{SessionStore: sessionStore, DBStore: dbStore})
 	apiRouter.Post("/api/renameupload", &RenameUploadHandler{SessionStore: sessionStore, DBStore: dbStore})
 	apiRouter.Post("/api/delupload", &DeleteUploadHandler{SessionStore: sessionStore, DBStore: dbStore})
@@ -82,13 +79,17 @@ func main() {
 	apiRouter.Get("/api/getsessions", &GetSessionsHandler{SessionStore: sessionStore, DBStore: dbStore})
 	apiRouter.Get("/api/sessioninfo/:id", &GetSessionInfoHandler{SessionStore: sessionStore, DBStore: dbStore})
 	mux.Handle("/api/ws", websocket.Handler(func(c *websocket.Conn) {
-		WebsocketHandler(c, dbStore, sessionStore)
+		WebsocketHandler(c, dbStore, sessionStore, options.RedisAddr)
 	}))
 	mux.Handle("/api/", apiRouter)
 
+	deliverIndex := func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, path.Join(options.HtdocsDir, "index.html"))
+	}
+
 	// deliver index.html for AngularJS routes.
-	mux.HandleFunc("/v/", DeliverIndex)
-	mux.HandleFunc("/s/", DeliverIndex)
+	mux.HandleFunc("/v/", deliverIndex)
+	mux.HandleFunc("/s/", deliverIndex)
 
 	// deliver static files from htdocs.
 	mux.Handle("/", http.FileServer(http.Dir(options.HtdocsDir)))
@@ -98,8 +99,4 @@ func main() {
 	if err := httpsrv.ListenAndServe(); err != nil {
 		xlog.Fatalf("ListenAndServe: %v", err)
 	}
-}
-
-func DeliverIndex(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, path.Join(options.HtdocsDir, "index.html"))
 }
