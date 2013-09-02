@@ -34,14 +34,16 @@ var (
 	store   sessions.Store
 	sqlDB   *sql.DB
 	options = struct {
-		Addr         string `goptions:"-L, --listen, description='Listen address'"`
-		CookieKey    string `goptions:"-k, --key, description='Secret key for cookie store', obligatory"`
-		ClientID     string `goptions:"--gplusclientid, description='Google+ Client ID', obligatory"`
-		ClientSecret string `goptions:"--gplusclientsecret, description='Google+ Client Secret', obligatory"`
-		DSN          string `goptions:"--dsn, description='MySQL DSN string', obligatory"`
-		HtdocsDir    string `goptions:"--htdocs, description='htdocs directory', obligatory"`
-		UploadDir    string `goptions:"--uploaddir, description='Upload directory', obligatory"`
-		RedisAddr    string `goptions:"--redis, description='redis address', obligatory"`
+		Addr                string `goptions:"-L, --listen, description='Listen address'"`
+		CookieKey           string `goptions:"-k, --key, description='Secret key for cookie store', obligatory"`
+		GplusClientID       string `goptions:"--gplusclientid, description='Google+ Client ID', obligatory"`
+		GplusClientSecret   string `goptions:"--gplusclientsecret, description='Google+ Client Secret', obligatory"`
+		TwitterClientKey    string `goptions:"--twitterclientkey, description='Twitter Client Key', obligatory"`
+		TwitterClientSecret string `goptions:"--twitterclientsecret, description='Twitter Client Secret', obligatory"`
+		DSN                 string `goptions:"--dsn, description='MySQL DSN string', obligatory"`
+		HtdocsDir           string `goptions:"--htdocs, description='htdocs directory', obligatory"`
+		UploadDir           string `goptions:"--uploaddir, description='Upload directory', obligatory"`
+		RedisAddr           string `goptions:"--redis, description='redis address', obligatory"`
 	}{
 		Addr:      "[::]:8080",
 		RedisAddr: ":6379",
@@ -71,7 +73,8 @@ func main() {
 	xlog.Debugf("Setting up HTTP server...")
 	mux := http.NewServeMux()
 
-	mux.Handle("/auth/gplus", auth.Google(options.ClientID, options.ClientSecret, "http://localhost:8080/auth/gplus"))
+	mux.Handle("/auth/gplus", auth.Google(options.GplusClientID, options.GplusClientSecret, "http://localhost:8080/auth/gplus"))
+	mux.Handle("/auth/twitter", auth.Twitter(options.TwitterClientKey, options.TwitterClientSecret, "http://localhost:8080/auth/twitter"))
 
 	// API calls.
 	apiRouter := pat.New()
