@@ -82,7 +82,7 @@ func (s *Store) GetSessions(userID string) ([]*SessionData, error) {
 
 func (s *Store) GetSessionInfoByPublicID(publicID, userID string) (*SessionInfo, error) {
 	result := &SessionInfo{}
-	err := meddler.QueryRow(s.sqlDB, &result,
+	err := meddler.QueryRow(s.sqlDB, result,
 		`SELECT 
 			uploads.title AS title, 
 			uploads.public_id AS public_id, 

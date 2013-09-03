@@ -52,6 +52,8 @@ func main() {
 		dbStore = NewStore(sqldb)
 	}
 
+	fileStore := &FileUploadStore{UploadDir: options.UploadDir}
+
 	xlog.Debugf("Creating upload directory %s...", options.UploadDir)
 	os.Mkdir(options.UploadDir, 0755)
 
@@ -69,7 +71,7 @@ func main() {
 		Connect(w, r, u, sessionStore)
 	})))
 	apiRouter.Post("/api/disconnect", &DisconnectHandler{SessionStore: sessionStore})
-	apiRouter.Post("/api/upload", &UploadHandler{SessionStore: sessionStore, DBStore: dbStore, UploadStore: &FileUploadStore{UploadDir: options.UploadDir}})
+	apiRouter.Post("/api/upload", &UploadHandler{SessionStore: sessionStore, DBStore: dbStore, UploadStore: fileStore})
 	apiRouter.Get("/api/getuploads", &GetUploadsHandler{SessionStore: sessionStore, DBStore: dbStore})
 	apiRouter.Post("/api/renameupload", &RenameUploadHandler{SessionStore: sessionStore, DBStore: dbStore})
 	apiRouter.Post("/api/delupload", &DeleteUploadHandler{SessionStore: sessionStore, DBStore: dbStore})
@@ -90,6 +92,7 @@ func main() {
 	// deliver index.html for AngularJS routes.
 	mux.HandleFunc("/v/", deliverIndex)
 	mux.HandleFunc("/s/", deliverIndex)
+	mux.Handle("/userdata/", http.StripPrefix("/userdata/", fileStore))
 
 	// deliver static files from htdocs.
 	mux.Handle("/", http.FileServer(http.Dir(options.HtdocsDir)))

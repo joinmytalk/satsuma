@@ -2,12 +2,17 @@ package main
 
 import (
 	"io"
+	"net/http"
 	"os"
 	"path"
 )
 
 type FileUploadStore struct {
 	UploadDir string
+}
+
+func (store *FileUploadStore) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	http.ServeFile(w, r, path.Join(store.UploadDir, r.URL.Path))
 }
 
 func (store *FileUploadStore) Store(id string, uploadedFile io.Reader) error {
