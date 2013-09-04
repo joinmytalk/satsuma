@@ -99,6 +99,9 @@ func main() {
 	mux.HandleFunc("/s/", deliverIndex)
 	mux.Handle("/userdata/", http.StripPrefix("/userdata/", fileStore))
 
+	mux.HandleFunc("/contact", deliverIndex)
+	mux.HandleFunc("/tos", deliverIndex)
+
 	// deliver static files from htdocs.
 	mux.Handle("/", http.FileServer(http.Dir(options.HtdocsDir)))
 
