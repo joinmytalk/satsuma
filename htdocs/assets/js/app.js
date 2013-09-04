@@ -3,13 +3,19 @@ var satsumaApp = angular.module('satsuma', [ 'ngUpload' ]);
 satsumaApp.config(['$routeProvider', '$locationProvider', function($routeProvider, $locationProvider) {
 		$locationProvider.html5Mode(true);
 
-		$routeProvider.when('/', { templateUrl: '/assets/partials/main.html', controller: 'MainCtrl' });
+		$routeProvider.when('/contact', { templateUrl: '/assets/partials/contact.html', controller: 'StaticPageCtrl' });
+		$routeProvider.when('/tos', { templateUrl: '/assets/partials/tos.html', controller: 'StaticPageCtrl' });
 		$routeProvider.when('/v/:uploadid', { templateUrl: '/assets/partials/pdfviewer.html', controller: 'PDFViewCtrl' });
 		$routeProvider.when('/s/:sessionid', { templateUrl: '/assets/partials/pdfviewer.html', controller: 'PDFViewCtrl' });
+		$routeProvider.when('/', { templateUrl: '/assets/partials/main.html', controller: 'MainCtrl' });
 
 		//$routeProvider.otherwise({ redirectTo: '/' });
 	}
 ]);
+
+satsumaApp.controller('StaticPageCtrl', [ '$scope', function($scope) {
+	// nothing.
+}]);
 
 satsumaApp.controller('PDFViewCtrl', [ '$scope', '$routeParams', '$http', '$location', function($scope, $routeParams, $http, $location) {
 	if ($routeParams.uploadid) {
