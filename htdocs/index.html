@@ -30,8 +30,17 @@
 		<!--[if lt IE 7]>
 			<p class="chromeframe">You are using an <strong>outdated</strong> browser. Please <a href="http://browsehappy.com/">upgrade your browser</a> or <a href="http://www.google.com/chromeframe/?redirect=true">activate Google Chrome Frame</a> to improve your experience.</p>
 		<![endif]-->
-		<div class="container" ng-show="checkedLoggedIn">
+		<div id="wrap" class="container" ng-show="checkedLoggedIn">
 			<div ng-view></div>
+			<div id="push"></div>
+		</div>
+		<div id="footer">
+			<div class="container text-center">
+				<a href="/contact">Imprint &amp; Contact</a> |
+				<a href="/tos">Terms of Service</a> |
+				<a href="https://github.com/joinmytalk">Code</a> |
+				Made in Berlin
+			</div>
 		</div>
 	</body>
 </html>
