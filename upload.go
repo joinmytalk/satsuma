@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"github.com/gorilla/securecookie"
 	"github.com/gorilla/sessions"
 	"github.com/joinmytalk/xlog"
 	"github.com/surma-dump/gouuid"
@@ -21,9 +22,14 @@ type UploadHandler struct {
 	SessionStore sessions.Store
 	DBStore      *Store
 	UploadStore  *FileUploadStore
+	SecureCookie *securecookie.SecureCookie
 }
 
 func (h *UploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if !VerifyXSRFToken(w, r, h.SessionStore, h.SecureCookie) {
+		return
+	}
+
 	session, _ := h.SessionStore.Get(r, SESSIONNAME)
 
 	if session.Values["userID"] == nil {
@@ -70,9 +76,13 @@ type DeleteUploadHandler struct {
 	SessionStore sessions.Store
 	DBStore      *Store
 	UploadStore  *FileUploadStore
+	SecureCookie *securecookie.SecureCookie
 }
 
 func (h *DeleteUploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if !VerifyXSRFToken(w, r, h.SessionStore, h.SecureCookie) {
+		return
+	}
 	session, _ := h.SessionStore.Get(r, SESSIONNAME)
 
 	if session.Values["userID"] == nil {
@@ -105,9 +115,13 @@ func (h *DeleteUploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 type RenameUploadHandler struct {
 	SessionStore sessions.Store
 	DBStore      *Store
+	SecureCookie *securecookie.SecureCookie
 }
 
 func (h *RenameUploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if !VerifyXSRFToken(w, r, h.SessionStore, h.SecureCookie) {
+		return
+	}
 	session, _ := h.SessionStore.Get(r, SESSIONNAME)
 
 	if session.Values["userID"] == nil {

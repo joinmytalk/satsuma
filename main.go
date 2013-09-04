@@ -6,6 +6,7 @@ import (
 	"github.com/bmizerany/pat"
 	"github.com/bradrydzewski/go.auth"
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/gorilla/securecookie"
 	"github.com/gorilla/sessions"
 	"github.com/joinmytalk/xlog"
 	"github.com/voxelbrain/goptions"
@@ -15,13 +16,16 @@ import (
 )
 
 const (
-	SESSIONNAME = "SATSUMA_COOKIE"
+	SESSIONNAME     = "SATSUMA_COOKIE"
+	XSRFTOKEN       = "XSRF-TOKEN"
+	XSRFTOKENHEADER = "X-XSRF-TOKEN"
 )
 
 func main() {
 	options := struct {
 		Addr                string `goptions:"-L, --listen, description='Listen address'"`
-		CookieKey           string `goptions:"-k, --key, description='Secret key for cookie store', obligatory"`
+		HashKey             string `goptions:"--hashkey, description='Hash key for cookie store and XSRF', obligatory"`
+		BlockKey            string `goptions:"--blockkey, description='Crypto key for cookie store and XSRF', obligatory"`
 		GplusClientID       string `goptions:"--gplusclientid, description='Google+ Client ID', obligatory"`
 		GplusClientSecret   string `goptions:"--gplusclientsecret, description='Google+ Client Secret', obligatory"`
 		TwitterClientKey    string `goptions:"--twitterclientkey, description='Twitter Client Key', obligatory"`
@@ -37,9 +41,10 @@ func main() {
 	goptions.ParseAndFail(&options)
 
 	xlog.Debug("Creating cookie store...")
-	sessionStore := sessions.NewCookieStore([]byte(options.CookieKey))
+	sessionStore := sessions.NewCookieStore([]byte(options.HashKey), []byte(options.BlockKey))
+	secureCookie := securecookie.New([]byte(options.HashKey), []byte(options.BlockKey))
 
-	auth.Config.CookieSecret = []byte(options.CookieKey)
+	auth.Config.CookieSecret = []byte(options.HashKey)
 	auth.Config.LoginSuccessRedirect = "/api/connect"
 	auth.Config.CookieSecure = false
 
@@ -68,16 +73,16 @@ func main() {
 	apiRouter := pat.New()
 	apiRouter.Get("/api/loggedin", &LoggedInHandler{SessionStore: sessionStore})
 	apiRouter.Get("/api/connect", http.HandlerFunc(auth.SecureUser(func(w http.ResponseWriter, r *http.Request, u auth.User) {
-		Connect(w, r, u, sessionStore)
+		Connect(w, r, u, sessionStore, secureCookie)
 	})))
-	apiRouter.Post("/api/disconnect", &DisconnectHandler{SessionStore: sessionStore})
-	apiRouter.Post("/api/upload", &UploadHandler{SessionStore: sessionStore, DBStore: dbStore, UploadStore: fileStore})
+	apiRouter.Post("/api/disconnect", &DisconnectHandler{SessionStore: sessionStore, SecureCookie: secureCookie})
+	apiRouter.Post("/api/upload", &UploadHandler{SessionStore: sessionStore, DBStore: dbStore, UploadStore: fileStore, SecureCookie: secureCookie})
 	apiRouter.Get("/api/getuploads", &GetUploadsHandler{SessionStore: sessionStore, DBStore: dbStore})
-	apiRouter.Post("/api/renameupload", &RenameUploadHandler{SessionStore: sessionStore, DBStore: dbStore})
-	apiRouter.Post("/api/delupload", &DeleteUploadHandler{SessionStore: sessionStore, DBStore: dbStore})
-	apiRouter.Post("/api/startsession", &StartSessionHandler{SessionStore: sessionStore, DBStore: dbStore})
-	apiRouter.Post("/api/stopsession", &StopSessionHandler{SessionStore: sessionStore, DBStore: dbStore})
-	apiRouter.Post("/api/delsession", &DeleteSessionHandler{SessionStore: sessionStore, DBStore: dbStore})
+	apiRouter.Post("/api/renameupload", &RenameUploadHandler{SessionStore: sessionStore, DBStore: dbStore, SecureCookie: secureCookie})
+	apiRouter.Post("/api/delupload", &DeleteUploadHandler{SessionStore: sessionStore, DBStore: dbStore, SecureCookie: secureCookie})
+	apiRouter.Post("/api/startsession", &StartSessionHandler{SessionStore: sessionStore, DBStore: dbStore, SecureCookie: secureCookie})
+	apiRouter.Post("/api/stopsession", &StopSessionHandler{SessionStore: sessionStore, DBStore: dbStore, SecureCookie: secureCookie})
+	apiRouter.Post("/api/delsession", &DeleteSessionHandler{SessionStore: sessionStore, DBStore: dbStore, SecureCookie: secureCookie})
 	apiRouter.Get("/api/getsessions", &GetSessionsHandler{SessionStore: sessionStore, DBStore: dbStore})
 	apiRouter.Get("/api/sessioninfo/:id", &GetSessionInfoHandler{SessionStore: sessionStore, DBStore: dbStore})
 	mux.Handle("/api/ws", websocket.Handler(func(c *websocket.Conn) {

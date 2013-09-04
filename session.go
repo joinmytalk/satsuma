@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"github.com/gorilla/securecookie"
 	"github.com/gorilla/sessions"
 	"github.com/joinmytalk/xlog"
 	"net/http"
@@ -19,9 +20,14 @@ type Session struct {
 type StartSessionHandler struct {
 	DBStore      *Store
 	SessionStore sessions.Store
+	SecureCookie *securecookie.SecureCookie
 }
 
 func (h *StartSessionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if !VerifyXSRFToken(w, r, h.SessionStore, h.SecureCookie) {
+		return
+	}
+
 	session, _ := h.SessionStore.Get(r, SESSIONNAME)
 
 	if session.Values["userID"] == nil {
@@ -134,9 +140,13 @@ func (h *GetSessionInfoHandler) ServeHTTP(w http.ResponseWriter, r *http.Request
 type StopSessionHandler struct {
 	SessionStore sessions.Store
 	DBStore      *Store
+	SecureCookie *securecookie.SecureCookie
 }
 
 func (h *StopSessionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if !VerifyXSRFToken(w, r, h.SessionStore, h.SecureCookie) {
+		return
+	}
 	session, _ := h.SessionStore.Get(r, SESSIONNAME)
 
 	if session.Values["userID"] == nil {
@@ -173,9 +183,13 @@ func (h *StopSessionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 type DeleteSessionHandler struct {
 	SessionStore sessions.Store
 	DBStore      *Store
+	SecureCookie *securecookie.SecureCookie
 }
 
 func (h *DeleteSessionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if !VerifyXSRFToken(w, r, h.SessionStore, h.SecureCookie) {
+		return
+	}
 	session, _ := h.SessionStore.Get(r, SESSIONNAME)
 
 	if session.Values["userID"] == nil {
