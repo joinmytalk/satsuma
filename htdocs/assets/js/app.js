@@ -420,7 +420,8 @@ satsumaApp.controller('PDFViewCtrl', [ '$scope', '$routeParams', '$http', '$loca
 				$scope.pageNum = data.page;
 			}
 			$scope.loadPDF("/userdata/" + $scope.id + ".pdf");
-			var wsURL = "ws://" + window.location.host + "/api/ws";
+			var proto = (window.location.protocol == "https:" ? "wss:" : "ws:");
+			var wsURL = proto + "//" + window.location.host + "/api/ws";
 			console.log('Opening WebSocket to ' + wsURL);
 			$scope.ws = new WebSocket(wsURL);
 			if ($scope.owner) {
