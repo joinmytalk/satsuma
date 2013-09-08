@@ -9,10 +9,13 @@ import (
 	"github.com/gorilla/securecookie"
 	"github.com/gorilla/sessions"
 	"github.com/joinmytalk/xlog"
+	"github.com/rcrowley/goagain"
 	"github.com/voxelbrain/goptions"
+	"net"
 	"net/http"
 	"os"
 	"path"
+	"time"
 )
 
 const (
@@ -105,9 +108,35 @@ func main() {
 	// deliver static files from htdocs.
 	mux.Handle("/", http.FileServer(http.Dir(options.HtdocsDir)))
 
-	xlog.Debugf("Starting HTTP server on %s", options.Addr)
-	httpsrv := &http.Server{Handler: Logger(mux), Addr: options.Addr}
-	if err := httpsrv.ListenAndServe(); err != nil {
-		xlog.Fatalf("ListenAndServe: %v", err)
+	l, ppid, err := goagain.GetEnvs()
+	if err != nil {
+		xlog.Debugf("Starting HTTP server on %s", options.Addr)
+		laddr, err := net.ResolveTCPAddr("tcp", options.Addr)
+		if err != nil {
+			xlog.Fatalf("net.ResolveTCPAddr failed: %v", err)
+		}
+		l, err = net.ListenTCP("tcp", laddr)
+		if err != nil {
+			xlog.Fatalf("net.ListenTCP failed: %v", err)
+		}
+		go http.Serve(l, Logger(mux))
+	} else {
+		go http.Serve(l, Logger(mux))
+
+		if err := goagain.KillParent(ppid); err != nil {
+			xlog.Fatalf("goagain.KillParent failed: %v", err)
+		}
 	}
+
+	if err := goagain.AwaitSignals(l); nil != err {
+		xlog.Fatalf("goagain.AwaitSignals failed: %v", err)
+	}
+
+	if err := l.Close(); err != nil {
+		xlog.Fatalf("Closing listening socket failed: %v", err)
+	}
+
+	// TODO: make sure all requests are finished before exiting, e.g. through a common waitgroup.
+
+	time.Sleep(1 * time.Second)
 }
