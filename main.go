@@ -38,6 +38,7 @@ func main() {
 		DSN                 string `goptions:"--dsn, description='MySQL DSN string', obligatory"`
 		HtdocsDir           string `goptions:"--htdocs, description='htdocs directory', obligatory"`
 		UploadDir           string `goptions:"--uploaddir, description='Upload directory', obligatory"`
+		TmpDir              string `goptions:"--tmpdir, description='directory for temporary files', obligatory"`
 		RedisAddr           string `goptions:"--redis, description='redis address', obligatory"`
 	}{
 		Addr:      "[::]:8080",
@@ -62,10 +63,12 @@ func main() {
 		dbStore = NewStore(sqldb)
 	}
 
-	fileStore := &FileUploadStore{UploadDir: options.UploadDir}
+	fileStore := &FileUploadStore{UploadDir: options.UploadDir, TmpDir: options.TmpDir}
 
 	xlog.Debugf("Creating upload directory %s...", options.UploadDir)
 	os.Mkdir(options.UploadDir, 0755)
+
+	os.Mkdir(options.TmpDir, 0755)
 
 	xlog.Debugf("Setting up HTTP server...")
 	mux := http.NewServeMux()

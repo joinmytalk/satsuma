@@ -43,7 +43,7 @@ func (h *UploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	title := r.FormValue("title")
-	file, _, err := r.FormFile("file")
+	file, fhdr, err := r.FormFile("file")
 	if err != nil {
 		http.Error(w, "couldn't read form", http.StatusInternalServerError)
 		return
@@ -51,7 +51,7 @@ func (h *UploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	id := generateID()
 
-	if err := h.UploadStore.Store(id, file); err != nil {
+	if err := h.UploadStore.Store(id, file, fhdr.Filename); err != nil {
 		xlog.Errorf("Storing file for upload %s failed: %v", id, err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
