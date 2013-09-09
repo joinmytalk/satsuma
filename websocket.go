@@ -48,7 +48,7 @@ type Command struct {
 	Cmd          string    `meddler:"cmd" json:"cmd"`
 	Page         int       `meddler:"page" json:"page"`
 	SessionID    int       `meddler:"session_id" json:"-"`
-	Coordinates  []int     `meddler:"coordinates,json" json:"coords"`
+	Coordinates  []float64 `meddler:"coordinates,json" json:"coords"`
 	Color        string    `meddler:"color" json:"color"`
 	Width        int       `meddler:"width" json:"width"`
 	CanvasWidth  int       `meddler:"canvas_width" json:"canvasWidth"`
