@@ -247,6 +247,22 @@ satsumaApp.controller('PDFViewCtrl', [ '$scope', '$routeParams', '$http', '$loca
 		$scope.cmds.push(data);
 	};
 
+	$scope.reconnectWebsocket = function(evt) {
+		if ($scope.ws) {
+			console.log('reconnecting WebSocket');
+			var newWs = new WebSocket($scope.wsURL);
+			newWs.onclose = $scope.ws.onclose;
+			newWs.onopen = $scope.ws.onopen;
+			newWs.onmessage = $scope.ws.onmessage;
+			newWs.onerror = $scope.ws.onerror;
+			$scope.ws = newWs;
+		}
+	};
+
+	$scope.logWebsocketError = function(evt) {
+		console.log('websocket error: ' + evt.data);
+	};
+
 	$scope.bindCanvas = function() {
 		$('#slide_canvas').mousedown($scope.mouseDown);
 		$('#slide_canvas').mousemove($scope.mouseMove);
@@ -421,9 +437,9 @@ satsumaApp.controller('PDFViewCtrl', [ '$scope', '$routeParams', '$http', '$loca
 			}
 			$scope.loadPDF("/userdata/" + $scope.id + ".pdf");
 			var proto = (window.location.protocol == "https:" ? "wss:" : "ws:");
-			var wsURL = proto + "//" + window.location.host + "/api/ws";
-			console.log('Opening WebSocket to ' + wsURL);
-			$scope.ws = new WebSocket(wsURL);
+			$scope.wsURL = proto + "//" + window.location.host + "/api/ws";
+			console.log('Opening WebSocket to ' + $scope.wsURL);
+			$scope.ws = new WebSocket($scope.wsURL);
 			if ($scope.owner) {
 				$scope.bindCanvas();
 				console.log('setting onopen to openWebSocketMaster');
@@ -433,6 +449,8 @@ satsumaApp.controller('PDFViewCtrl', [ '$scope', '$routeParams', '$http', '$loca
 				$scope.ws.onopen = $scope.openWebSocketSlave;
 				$scope.ws.onmessage = $scope.onMessageSlave;
 			}
+			$scope.ws.onclose = $scope.reconnectWebsocket;
+			$scope.ws.onerror = $scope.logWebsocketError;
 		});
 		break;
 	}
