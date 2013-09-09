@@ -40,6 +40,7 @@ func main() {
 		UploadDir           string `goptions:"--uploaddir, description='Upload directory', obligatory"`
 		TmpDir              string `goptions:"--tmpdir, description='directory for temporary files', obligatory"`
 		RedisAddr           string `goptions:"--redis, description='redis address', obligatory"`
+		AccessLog           bool   `goptions:"--accesslog, description='log HTTP requests'"`
 	}{
 		Addr:      "[::]:8080",
 		RedisAddr: ":6379",
@@ -113,6 +114,11 @@ func main() {
 	// deliver static files from htdocs.
 	mux.Handle("/", http.FileServer(http.Dir(options.HtdocsDir)))
 
+	var handler http.Handler = mux
+	if options.AccessLog {
+		handler = Logger(handler)
+	}
+
 	l, ppid, err := goagain.GetEnvs()
 	if err != nil {
 		xlog.Debugf("Starting HTTP server on %s", options.Addr)
@@ -124,9 +130,9 @@ func main() {
 		if err != nil {
 			xlog.Fatalf("net.ListenTCP failed: %v", err)
 		}
-		go http.Serve(l, Logger(mux))
+		go http.Serve(l, handler)
 	} else {
-		go http.Serve(l, Logger(mux))
+		go http.Serve(l, handler)
 
 		if err := goagain.KillParent(ppid); err != nil {
 			xlog.Fatalf("goagain.KillParent failed: %v", err)
