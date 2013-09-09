@@ -123,8 +123,9 @@ satsumaApp.controller('PDFViewCtrl', [ '$scope', '$routeParams', '$http', '$loca
 
 		ctx.beginPath();
 
-		ctx.setLineWidth(cmd.width * xFactor);
-		ctx.setStrokeColor(cmd.color, 0.5);
+		ctx.lineWidth = cmd.width * xFactor;
+		ctx.strokeStyle = cmd.color;
+		ctx.globalAlpha = 0.5;
 
 		for (var i=0;i<cmd.coords.length;i+=2) {
 			ctx.lineTo(cmd.coords[i] * xFactor, cmd.coords[i+1] * yFactor);
@@ -288,8 +289,9 @@ satsumaApp.controller('PDFViewCtrl', [ '$scope', '$routeParams', '$http', '$loca
 
 		$scope.isMouseDown = true;
 
-		ctx.setLineWidth($scope.lineWidth);
-		ctx.setStrokeColor($scope.lineColor, 0.5);
+		ctx.lineWidth = $scope.lineWidth;
+		ctx.strokeStyle = $scope.lineColor;
+		ctx.globalAlpha = 0.5;
 
 		$scope.mouseCoords = [ ];
 
@@ -313,8 +315,10 @@ satsumaApp.controller('PDFViewCtrl', [ '$scope', '$routeParams', '$http', '$loca
 		var canvas = document.getElementById('slide_canvas');
 		var ctx = canvas.getContext('2d');
 
-		ctx.setLineWidth($scope.lineWidth);
-		ctx.setStrokeColor($scope.lineColor, 0.5);
+
+		ctx.lineWidth = $scope.lineWidth;
+		ctx.strokeStyle = $scope.lineColor;
+		ctx.globalAlpha = 0.5;
 
 		var coords = $scope.relCoords(canvas, e);
 
@@ -357,8 +361,9 @@ satsumaApp.controller('PDFViewCtrl', [ '$scope', '$routeParams', '$http', '$loca
 
 		$scope.isMouseDown = true;
 
-		ctx.setLineWidth($scope.lineWidth);
-		ctx.setStrokeColor($scope.lineColor, 0.5);
+		ctx.lineWidth = $scope.lineWidth;
+		ctx.strokeStyle = $scope.lineColor;
+		ctx.globalAlpha = 0.5;
 
 		$scope.mouseCoords = [ ];
 
@@ -384,8 +389,9 @@ satsumaApp.controller('PDFViewCtrl', [ '$scope', '$routeParams', '$http', '$loca
 		var canvas = document.getElementById('slide_canvas');
 		var ctx = canvas.getContext('2d');
 
-		ctx.setLineWidth($scope.lineWidth);
-		ctx.setStrokeColor($scope.lineColor, 0.5);
+		ctx.lineWidth = $scope.lineWidth;
+		ctx.strokeStyle = $scope.lineColor;
+		ctx.globalAlpha = 0.5;
 
 		var coords = $scope.relCoords(canvas, e.touches[0]);
 
