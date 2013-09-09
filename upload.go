@@ -26,9 +26,11 @@ type UploadHandler struct {
 }
 
 func (h *UploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	/* // re-enable as soon as ng-upload can do that.
 	if !VerifyXSRFToken(w, r, h.SessionStore, h.SecureCookie) {
 		return
 	}
+	*/
 
 	session, _ := h.SessionStore.Get(r, SESSIONNAME)
 
