@@ -31,8 +31,10 @@ func main() {
 		BlockKey            string `goptions:"--blockkey, description='Crypto key for cookie store and XSRF', obligatory"`
 		GplusClientID       string `goptions:"--gplusclientid, description='Google+ Client ID', obligatory"`
 		GplusClientSecret   string `goptions:"--gplusclientsecret, description='Google+ Client Secret', obligatory"`
+		GPlusAuthURL        string `goptions:"--gplusauthurl, description='Google+ Authentication URL', obligatory"`
 		TwitterClientKey    string `goptions:"--twitterclientkey, description='Twitter Client Key', obligatory"`
 		TwitterClientSecret string `goptions:"--twitterclientsecret, description='Twitter Client Secret', obligatory"`
+		TwitterAuthURL      string `goptions:"--twitterauthurl, description='Twitter Authentication URL', obligatory"`
 		DSN                 string `goptions:"--dsn, description='MySQL DSN string', obligatory"`
 		HtdocsDir           string `goptions:"--htdocs, description='htdocs directory', obligatory"`
 		UploadDir           string `goptions:"--uploaddir, description='Upload directory', obligatory"`
@@ -69,8 +71,8 @@ func main() {
 	mux := http.NewServeMux()
 
 	// auth calls
-	mux.Handle("/auth/gplus", auth.Google(options.GplusClientID, options.GplusClientSecret, "http://localhost:8080/auth/gplus"))
-	mux.Handle("/auth/twitter", auth.Twitter(options.TwitterClientKey, options.TwitterClientSecret, "http://localhost:8080/auth/twitter"))
+	mux.Handle("/auth/gplus", auth.Google(options.GplusClientID, options.GplusClientSecret, options.GPlusAuthURL))
+	mux.Handle("/auth/twitter", auth.Twitter(options.TwitterClientKey, options.TwitterClientSecret, options.TwitterAuthURL))
 
 	// API calls.
 	apiRouter := pat.New()
