@@ -468,6 +468,7 @@ satsumaApp.controller('PDFViewCtrl', [ '$scope', '$routeParams', '$http', '$loca
 }]);
 
 satsumaApp.controller('LoginCtrl', [ '$scope', '$http', '$rootScope', function($scope, $http, $rootScope) {
+	console.log('LoginCtrl: new instance');
 	$rootScope.checkedLoggedIn = false;
 	$rootScope.loggedIn = false;
 
@@ -475,6 +476,8 @@ satsumaApp.controller('LoginCtrl', [ '$scope', '$http', '$rootScope', function($
 	success(function(data, status, headers, config) {
 		$rootScope.checkedLoggedIn = true;
 		$rootScope.loggedIn = data.logged_in;
+		console.log('LoginCtrl: loggedIn = ' + $rootScope.loggedIn);
+		$rootScope.$broadcast('loggedIn');
 	});
 }]);
 
@@ -489,6 +492,7 @@ satsumaApp.controller('MainCtrl', ['$scope', '$http', '$rootScope', function($sc
 	$scope.loading_sessions = false;
 
 	window.signinCallback = function(authData) {
+		console.log('signinCallback called');
 		$scope.error = null;
 		console.log(authData);
 		if (authData['access_token']) {
@@ -514,6 +518,7 @@ satsumaApp.controller('MainCtrl', ['$scope', '$http', '$rootScope', function($sc
 	});
 
 	$scope.getUploads = function() {
+		console.log('getUploads called');
 		$scope.loading_uploads = true;
 		$http.get('/api/getuploads').
 		success(function(data, status, headers, config) {
@@ -559,6 +564,7 @@ satsumaApp.controller('MainCtrl', ['$scope', '$http', '$rootScope', function($sc
 	};
 
 	$scope.getSessions = function() {
+		console.log('getSessions called');
 		$scope.loading_sessions = true;
 		$http.get('/api/getsessions').
 		success(function(data, status, headers, config) {
@@ -632,6 +638,7 @@ satsumaApp.controller('MainCtrl', ['$scope', '$http', '$rootScope', function($sc
 	};
 
 	if ($rootScope.loggedIn) {
+		console.log('logged in, loading uploads and sessions');
 		$scope.getUploads();
 		$scope.getSessions();
 	}
