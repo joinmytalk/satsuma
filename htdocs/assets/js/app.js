@@ -42,9 +42,7 @@ satsumaApp.controller('PDFViewCtrl', [ '$scope', '$routeParams', '$http', '$loca
 	$scope.cmds = [ ];
 
 	$scope.loadPDF = function(path) {
-		console.log('PDFViewCtrl: loadPDF ' + path);
 		PDFJS.getDocument(path).then(function(_pdfDoc) {
-			console.log('PDFViewCtrl: getDocument succeeded');
 			$scope.scale = $scope.origScale;
 			$scope.pdfDoc = _pdfDoc;
 			$scope.renderPage($scope.pageNum, function(success) {
@@ -56,33 +54,27 @@ satsumaApp.controller('PDFViewCtrl', [ '$scope', '$routeParams', '$http', '$loca
 		}, function(progressData) {
 			$scope.loadProgress = (100 * progressData.loaded) / progressData.total;
 			$scope.loadProgress = Math.round($scope.loadProgress*100)/100;
-			console.log('loadProgress = ' + $scope.loadProgress);
 			$scope.$apply();
 		});
 	};
 
 	$scope.renderPage = function(num, callback) {
-		console.log('PDFViewCtrl: renderPage ' + num);
 		$scope.pdfDoc.getPage(num).then(function(page) {
-			console.log('PDFViewCtrl: getPage succeeded');
 			var viewport = page.getViewport($scope.scale);
 			if ($scope.fullscreen) {
 				var new_scale = Math.min($scope.scale * (window.screen.height / viewport.height), $scope.scale * (window.screen.width / viewport.width));
-				console.log('scale = ' + $scope.scale);
-				console.log('new scale = ' + new_scale);
+				console.log('scale = ' + $scope.scale + ' new scale = ' + new_scale);
 				viewport = page.getViewport(new_scale);
 			}
 
 			var canvas = document.getElementById('slide_canvas');
 			var ctx = canvas.getContext('2d');
 
-			console.log(viewport);
 			canvas.height = viewport.height;
 			canvas.width = viewport.width;
 
 			page.render({ canvasContext: ctx, viewport: viewport }).then(
 				function() {
-					console.log('PDFViewCtrl: page.render succeeded');
 					for (var i=0;i<$scope.cmds.length;i++) {
 						var cmd = $scope.cmds[i];
 						if (cmd.page == num && cmd.cmd != "gotoPage") {
@@ -93,7 +85,6 @@ satsumaApp.controller('PDFViewCtrl', [ '$scope', '$routeParams', '$http', '$loca
 						callback(true);
 				},
 				function() {
-					console.log('PDFViewCtrl: page.render failed');
 					if (callback)
 						callback(false);
 				}
@@ -190,7 +181,6 @@ satsumaApp.controller('PDFViewCtrl', [ '$scope', '$routeParams', '$http', '$loca
 	};
 
 	$scope.handleKey = function(event) {
-		console.log("called handleKey");
 		switch (event.which) {
 		case 37: // left
 		case 38: // up
@@ -227,9 +217,8 @@ satsumaApp.controller('PDFViewCtrl', [ '$scope', '$routeParams', '$http', '$loca
 
 	$scope.sendCmd = function(data) {
 		var jsonData = JSON.stringify(data);
-		console.log('sendCmd: ' + jsonData);
 		if ($scope.wsSend) {
-			console.log('sendCmd: sending data');
+			console.log('sendCmd: sending data: ' + jsonData);
 			$scope.ws.send(jsonData);
 			$scope.cmds.push(data);
 		}
@@ -494,7 +483,6 @@ satsumaApp.controller('MainCtrl', ['$scope', '$http', '$rootScope', function($sc
 	window.signinCallback = function(authData) {
 		console.log('signinCallback called');
 		$scope.error = null;
-		console.log(authData);
 		if (authData['access_token']) {
 			$http.post('/api/connect', authData['code']).
 			success(function(data, status, headers, config) {
@@ -518,7 +506,6 @@ satsumaApp.controller('MainCtrl', ['$scope', '$http', '$rootScope', function($sc
 	});
 
 	$scope.getUploads = function() {
-		console.log('getUploads called');
 		$scope.loading_uploads = true;
 		$http.get('/api/getuploads').
 		success(function(data, status, headers, config) {
@@ -564,7 +551,6 @@ satsumaApp.controller('MainCtrl', ['$scope', '$http', '$rootScope', function($sc
 	};
 
 	$scope.getSessions = function() {
-		console.log('getSessions called');
 		$scope.loading_sessions = true;
 		$http.get('/api/getsessions').
 		success(function(data, status, headers, config) {
