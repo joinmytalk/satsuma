@@ -28,7 +28,6 @@ satsumaApp.controller('PDFViewCtrl', [ '$scope', '$routeParams', '$http', '$loca
 	console.log('PDFViewCtrl: new instance. type = ' + $scope.type);
 
 	$scope.pageNum = 1;
-	PDFJS.disableWorker = true;
 	$scope.loadProgress = 0;
 	$scope.fullscreen = false;
 	$scope.pdfDoc = null;
@@ -43,7 +42,9 @@ satsumaApp.controller('PDFViewCtrl', [ '$scope', '$routeParams', '$http', '$loca
 	$scope.cmds = [ ];
 
 	$scope.loadPDF = function(path) {
+		console.log('PDFViewCtrl: loadPDF ' + path);
 		PDFJS.getDocument(path).then(function(_pdfDoc) {
+			console.log('PDFViewCtrl: getDocument succeeded');
 			$scope.scale = $scope.origScale;
 			$scope.pdfDoc = _pdfDoc;
 			$scope.renderPage($scope.pageNum, function(success) {
@@ -61,7 +62,9 @@ satsumaApp.controller('PDFViewCtrl', [ '$scope', '$routeParams', '$http', '$loca
 	};
 
 	$scope.renderPage = function(num, callback) {
+		console.log('PDFViewCtrl: renderPage ' + num);
 		$scope.pdfDoc.getPage(num).then(function(page) {
+			console.log('PDFViewCtrl: getPage succeeded');
 			var viewport = page.getViewport($scope.scale);
 			if ($scope.fullscreen) {
 				var new_scale = Math.min($scope.scale * (window.screen.height / viewport.height), $scope.scale * (window.screen.width / viewport.width));
@@ -79,6 +82,7 @@ satsumaApp.controller('PDFViewCtrl', [ '$scope', '$routeParams', '$http', '$loca
 
 			page.render({ canvasContext: ctx, viewport: viewport }).then(
 				function() {
+					console.log('PDFViewCtrl: page.render succeeded');
 					for (var i=0;i<$scope.cmds.length;i++) {
 						var cmd = $scope.cmds[i];
 						if (cmd.page == num && cmd.cmd != "gotoPage") {
@@ -89,6 +93,7 @@ satsumaApp.controller('PDFViewCtrl', [ '$scope', '$routeParams', '$http', '$loca
 						callback(true);
 				},
 				function() {
+					console.log('PDFViewCtrl: page.render failed');
 					if (callback)
 						callback(false);
 				}
