@@ -35,6 +35,8 @@ func (h *StartSessionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	StatCount("start session", 1)
+
 	data := struct {
 		UploadID string `json:"upload_id"`
 	}{}
@@ -90,6 +92,8 @@ func (h *GetSessionsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	StatCount("get sessions", 1)
+
 	result, err := h.DBStore.GetSessions(session.Values["userID"].(string))
 
 	if err != nil {
@@ -117,6 +121,7 @@ type GetSessionInfoHandler struct {
 }
 
 func (h *GetSessionInfoHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	StatCount("session info", 1)
 	session, _ := h.SessionStore.Get(r, SESSIONNAME)
 
 	userID := ""
@@ -153,6 +158,8 @@ func (h *StopSessionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "authentication required", http.StatusForbidden)
 		return
 	}
+
+	StatCount("stop session", 1)
 
 	requestData := struct {
 		PublicID string `json:"session_id"`
@@ -196,6 +203,8 @@ func (h *DeleteSessionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 		http.Error(w, "authentication required", http.StatusForbidden)
 		return
 	}
+
+	StatCount("delete session", 1)
 
 	requestData := struct {
 		PublicID string `json:"session_id"`

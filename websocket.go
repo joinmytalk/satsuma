@@ -11,6 +11,7 @@ import (
 )
 
 func WebsocketHandler(s *websocket.Conn, dbStore *Store, sessionStore sessions.Store, redisAddr string) {
+	StatCount("websocket", 1)
 	xlog.Infof("WebsocketHandler: opened connection")
 	r := s.Request()
 	session, _ := sessionStore.Get(r, SESSIONNAME)
@@ -72,6 +73,7 @@ func slaveHandler(s *websocket.Conn, sessionID int, dbStore *Store, redisAddr st
 	for {
 		switch v := psc.Receive().(type) {
 		case redis.Message:
+			StatCount("command for slave", 1)
 			var cmd Command
 			if err := json.Unmarshal(v.Data, &cmd); err != nil {
 				break
@@ -128,6 +130,7 @@ func masterHandler(s *websocket.Conn, sessionID int, dbStore *Store, redisAddr s
 }
 
 func executeCommand(cmd Command, dbStore *Store) {
+	StatCount("command from master", 1)
 	switch cmd.Cmd {
 	case "clearSlide":
 		if err := dbStore.ClearSlide(cmd.SessionID, cmd.Page); err != nil {

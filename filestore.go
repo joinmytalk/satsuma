@@ -63,6 +63,7 @@ func (store *FileUploadStore) Remove(uploadID string) {
 }
 
 func ConvertFileToPDF(src, target string) error {
+	StatCount("file conversion to PDF", 1)
 	cmd := exec.Command("unoconv", "-f", "pdf", "--stdout", src)
 	// cmd := exec.Command("cat", src)
 	if f, err := os.OpenFile(target, os.O_WRONLY|os.O_CREATE, 0644); err != nil {

@@ -44,6 +44,8 @@ func (h *UploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	StatCount("upload presentation", 1)
+
 	title := r.FormValue("title")
 	file, fhdr, err := r.FormFile("file")
 	if err != nil {
@@ -92,6 +94,8 @@ func (h *DeleteUploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	StatCount("delete upload", 1)
+
 	requestData := struct {
 		UploadID string `json:"upload_id"`
 	}{}
@@ -136,6 +140,8 @@ func (h *RenameUploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 		NewTitle string `json:"new_title"`
 	}{}
 
+	StatCount("rename upload", 1)
+
 	if err := json.NewDecoder(r.Body).Decode(&requestData); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -157,6 +163,8 @@ type GetUploadsHandler struct {
 func (h *GetUploadsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	session, _ := h.SessionStore.Get(r, SESSIONNAME)
 	userID := session.Values["userID"].(string)
+
+	StatCount("get uploads", 1)
 
 	result, err := h.DBStore.GetUploadsForUser(userID)
 	if err != nil {

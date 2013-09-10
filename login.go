@@ -10,6 +10,7 @@ import (
 )
 
 func Connect(w http.ResponseWriter, r *http.Request, u auth.User, sessionStore sessions.Store, secureCookie *securecookie.SecureCookie) {
+	StatCount("connect call", 1)
 	session, err := sessionStore.Get(r, SESSIONNAME)
 	if err != nil {
 		xlog.Errorf("Error fetching session: %v", err)
@@ -51,6 +52,7 @@ func VerifyXSRFToken(w http.ResponseWriter, r *http.Request, sessionStore sessio
 
 	xlog.Errorf("XSRF verification failed: %v (Request: %#v", err, *r)
 	http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
+	StatCount("XSRF verification failed", 1)
 	return false
 }
 
@@ -60,6 +62,7 @@ type DisconnectHandler struct {
 }
 
 func (h *DisconnectHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	StatCount("disconnect call", 1)
 	if !VerifyXSRFToken(w, r, h.SessionStore, h.SecureCookie) {
 		return
 	}
@@ -90,6 +93,7 @@ type LoggedInHandler struct {
 }
 
 func (h *LoggedInHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	StatCount("loggedin call", 1)
 	jsonEncoder := json.NewEncoder(w)
 	session, err := h.SessionStore.Get(r, SESSIONNAME)
 	if err != nil {

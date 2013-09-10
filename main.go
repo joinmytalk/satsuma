@@ -41,11 +41,17 @@ func main() {
 		TmpDir              string `goptions:"--tmpdir, description='directory for temporary files', obligatory"`
 		RedisAddr           string `goptions:"--redis, description='redis address', obligatory"`
 		AccessLog           bool   `goptions:"--accesslog, description='log HTTP requests'"`
+		StatHat             string `goptions:"--stathat, description='Enable StatHat tracking and set user key'"`
 	}{
 		Addr:      "[::]:8080",
 		RedisAddr: ":6379",
 	}
 	goptions.ParseAndFail(&options)
+
+	if options.StatHat != "" {
+		enableStatHat = true
+		stathatUserKey = options.StatHat
+	}
 
 	xlog.Debug("Creating cookie store...")
 	sessionStore := sessions.NewCookieStore([]byte(options.HashKey), []byte(options.BlockKey))
@@ -121,6 +127,7 @@ func main() {
 
 	l, ppid, err := goagain.GetEnvs()
 	if err != nil {
+		StatCount("satsuma start", 1)
 		xlog.Debugf("Starting HTTP server on %s", options.Addr)
 		laddr, err := net.ResolveTCPAddr("tcp", options.Addr)
 		if err != nil {
@@ -132,6 +139,7 @@ func main() {
 		}
 		go http.Serve(l, handler)
 	} else {
+		StatCount("satsuma reload", 1)
 		go http.Serve(l, handler)
 
 		if err := goagain.KillParent(ppid); err != nil {
