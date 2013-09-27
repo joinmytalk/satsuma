@@ -38,7 +38,7 @@ DELIMITER ;
 
 CALL migrate_accounts();
 
-DROP PROCEDRURE migrate_accounts();
+DROP PROCEDURE migrate_accounts;
 
 ALTER TABLE uploads ADD CONSTRAINT FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
 ALTER TABLE accounts ADD CONSTRAINT FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
