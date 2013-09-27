@@ -47,7 +47,7 @@ func (h *StartSessionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	uploadEntry, err := h.DBStore.GetUploadByPublicID(data.UploadID, session.Values["userID"].(string))
+	uploadEntry, err := h.DBStore.GetUploadByPublicID(data.UploadID, session.Values["userID"].(int))
 	if err != nil {
 		xlog.Errorf("Querying upload %s failed: %v", data.UploadID, err)
 		http.Error(w, err.Error(), http.StatusNotFound)
@@ -87,14 +87,14 @@ type GetSessionsHandler struct {
 func (h *GetSessionsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	session, _ := h.SessionStore.Get(r, SESSIONNAME)
 
-	if session.Values["userID"] == nil {
+	if session.Values["username"] == nil {
 		http.Error(w, "authentication required", http.StatusForbidden)
 		return
 	}
 
 	StatCount("get sessions", 1)
 
-	result, err := h.DBStore.GetSessions(session.Values["userID"].(string))
+	result, err := h.DBStore.GetSessions(session.Values["userID"].(int))
 
 	if err != nil {
 		xlog.Errorf("Querying sessions failed: %v", err)
@@ -110,7 +110,7 @@ type SessionInfo struct {
 	Title    string     `meddler:"title" json:"title"`
 	UploadID string     `meddler:"public_id" json:"upload_id"`
 	IsOwner  bool       `json:"owner" meddler:"-"`
-	Owner    string     `meddler:"owner" json:"-"`
+	UserID   int        `meddler:"user_id" json:"-"`
 	Page     int        `meddler:"page" json:"page"`
 	Cmds     []*Command `meddler:"-" json:"cmds"`
 }
@@ -124,9 +124,9 @@ func (h *GetSessionInfoHandler) ServeHTTP(w http.ResponseWriter, r *http.Request
 	StatCount("session info", 1)
 	session, _ := h.SessionStore.Get(r, SESSIONNAME)
 
-	userID := ""
+	userID := 0
 	if session.Values["userID"] != nil {
-		userID = session.Values["userID"].(string)
+		userID = session.Values["userID"].(int)
 	}
 
 	publicID := r.URL.Query().Get(":id")
@@ -170,14 +170,14 @@ func (h *StopSessionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	owner, _, err := h.DBStore.GetOwnerForSession(requestData.PublicID)
+	ownerID, _, err := h.DBStore.GetOwnerForSession(requestData.PublicID)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	if owner != session.Values["userID"].(string) {
+	if ownerID != session.Values["userID"].(int) {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
@@ -215,13 +215,13 @@ func (h *DeleteSessionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	owner, _, err := h.DBStore.GetOwnerForSession(requestData.PublicID)
+	ownerID, _, err := h.DBStore.GetOwnerForSession(requestData.PublicID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	if owner != session.Values["userID"].(string) {
+	if ownerID != session.Values["userID"].(int) {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}

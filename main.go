@@ -88,7 +88,7 @@ func main() {
 	apiRouter := pat.New()
 	apiRouter.Get("/api/loggedin", &LoggedInHandler{SessionStore: sessionStore})
 	apiRouter.Get("/api/connect", http.HandlerFunc(auth.SecureUser(func(w http.ResponseWriter, r *http.Request, u auth.User) {
-		Connect(w, r, u, sessionStore, secureCookie)
+		Connect(w, r, u, sessionStore, secureCookie, dbStore)
 	})))
 	apiRouter.Post("/api/disconnect", &DisconnectHandler{SessionStore: sessionStore, SecureCookie: secureCookie})
 	apiRouter.Post("/api/upload", &UploadHandler{SessionStore: sessionStore, DBStore: dbStore, UploadStore: fileStore, SecureCookie: secureCookie})

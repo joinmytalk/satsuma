@@ -34,7 +34,7 @@ func WebsocketHandler(s *websocket.Conn, dbStore *Store, sessionStore sessions.S
 	if session.Values["userID"] == nil {
 		xlog.Errorf("WebsocketHandler is not authenticated -> slave handler")
 		slaveHandler(s, sessionID, dbStore, redisAddr)
-	} else if owner == session.Values["userID"].(string) {
+	} else if owner == session.Values["userID"].(int) {
 		xlog.Infof("WebSocketHandler owner matches -> master handler")
 		masterHandler(s, sessionID, dbStore, redisAddr)
 	} else {

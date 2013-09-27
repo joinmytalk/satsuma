@@ -14,7 +14,7 @@ type Upload struct {
 	ID       int       `meddler:"id,pk" json:"-"`
 	Title    string    `meddler:"title" json:"title"`
 	PublicID string    `meddler:"public_id" json:"_id"`
-	Owner    string    `meddler:"owner" json:"-"`
+	UserID   int       `meddler:"user_id" json:"-"`
 	Uploaded time.Time `meddler:"uploaded,utctimez"`
 }
 
@@ -63,7 +63,7 @@ func (h *UploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	if err := h.DBStore.InsertUpload(&Upload{
 		PublicID: id,
-		Owner:    session.Values["userID"].(string),
+		UserID:   session.Values["userID"].(int),
 		Title:    title,
 		Uploaded: time.Now(),
 	}); err != nil {
@@ -105,7 +105,7 @@ func (h *DeleteUploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	rowsAffected, err := h.DBStore.DeleteUploadByPublicID(requestData.UploadID, session.Values["userID"].(string))
+	rowsAffected, err := h.DBStore.DeleteUploadByPublicID(requestData.UploadID, session.Values["userID"].(int))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -147,7 +147,7 @@ func (h *RenameUploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	if err := h.DBStore.SetTitleForPresentation(requestData.NewTitle, requestData.UploadID, session.Values["userID"].(string)); err != nil {
+	if err := h.DBStore.SetTitleForPresentation(requestData.NewTitle, requestData.UploadID, session.Values["userID"].(int)); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -162,7 +162,7 @@ type GetUploadsHandler struct {
 
 func (h *GetUploadsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	session, _ := h.SessionStore.Get(r, SESSIONNAME)
-	userID := session.Values["userID"].(string)
+	userID := session.Values["userID"].(int)
 
 	StatCount("get uploads", 1)
 
