@@ -28,7 +28,13 @@ func (h *StartSessionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	session, _ := h.SessionStore.Get(r, SESSIONNAME)
+	session, err := h.SessionStore.Get(r, SESSIONNAME)
+	if err != nil {
+		xlog.Debugf("Getting session failed: %v", err)
+		StatCount("getting session failed", 1)
+		http.Error(w, err.Error(), http.StatusForbidden)
+		return
+	}
 
 	if session.Values["userID"] == nil {
 		http.Error(w, "authentication required", http.StatusForbidden)
@@ -85,7 +91,13 @@ type GetSessionsHandler struct {
 }
 
 func (h *GetSessionsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	session, _ := h.SessionStore.Get(r, SESSIONNAME)
+	session, err := h.SessionStore.Get(r, SESSIONNAME)
+	if err != nil {
+		xlog.Debugf("Getting session failed: %v", err)
+		StatCount("getting session failed", 1)
+		http.Error(w, err.Error(), http.StatusForbidden)
+		return
+	}
 
 	if session.Values["username"] == nil {
 		http.Error(w, "authentication required", http.StatusForbidden)
@@ -122,7 +134,13 @@ type GetSessionInfoHandler struct {
 
 func (h *GetSessionInfoHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	StatCount("session info", 1)
-	session, _ := h.SessionStore.Get(r, SESSIONNAME)
+	session, err := h.SessionStore.Get(r, SESSIONNAME)
+	if err != nil {
+		xlog.Debugf("Getting session failed: %v", err)
+		StatCount("getting session failed", 1)
+		http.Error(w, err.Error(), http.StatusForbidden)
+		return
+	}
 
 	userID := 0
 	if session.Values["userID"] != nil {
@@ -152,7 +170,13 @@ func (h *StopSessionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if !VerifyXSRFToken(w, r, h.SessionStore, h.SecureCookie) {
 		return
 	}
-	session, _ := h.SessionStore.Get(r, SESSIONNAME)
+	session, err := h.SessionStore.Get(r, SESSIONNAME)
+	if err != nil {
+		xlog.Debugf("Getting session failed: %v", err)
+		StatCount("getting session failed", 1)
+		http.Error(w, err.Error(), http.StatusForbidden)
+		return
+	}
 
 	if session.Values["userID"] == nil {
 		http.Error(w, "authentication required", http.StatusForbidden)
@@ -197,7 +221,13 @@ func (h *DeleteSessionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 	if !VerifyXSRFToken(w, r, h.SessionStore, h.SecureCookie) {
 		return
 	}
-	session, _ := h.SessionStore.Get(r, SESSIONNAME)
+	session, err := h.SessionStore.Get(r, SESSIONNAME)
+	if err != nil {
+		xlog.Debugf("Getting session failed: %v", err)
+		StatCount("getting session failed", 1)
+		http.Error(w, err.Error(), http.StatusForbidden)
+		return
+	}
 
 	if session.Values["userID"] == nil {
 		http.Error(w, "authentication required", http.StatusForbidden)

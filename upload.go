@@ -32,7 +32,13 @@ func (h *UploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	*/
 
-	session, _ := h.SessionStore.Get(r, SESSIONNAME)
+	session, err := h.SessionStore.Get(r, SESSIONNAME)
+	if err != nil {
+		xlog.Debugf("Getting session failed: %v", err)
+		StatCount("getting session failed", 1)
+		http.Error(w, err.Error(), http.StatusForbidden)
+		return
+	}
 
 	if session.Values["userID"] == nil {
 		http.Error(w, "authentication required", http.StatusForbidden)
@@ -87,7 +93,13 @@ func (h *DeleteUploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 	if !VerifyXSRFToken(w, r, h.SessionStore, h.SecureCookie) {
 		return
 	}
-	session, _ := h.SessionStore.Get(r, SESSIONNAME)
+	session, err := h.SessionStore.Get(r, SESSIONNAME)
+	if err != nil {
+		xlog.Debugf("Getting session failed: %v", err)
+		StatCount("getting session failed", 1)
+		http.Error(w, err.Error(), http.StatusForbidden)
+		return
+	}
 
 	if session.Values["userID"] == nil {
 		http.Error(w, "authentication required", http.StatusForbidden)
@@ -128,7 +140,13 @@ func (h *RenameUploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 	if !VerifyXSRFToken(w, r, h.SessionStore, h.SecureCookie) {
 		return
 	}
-	session, _ := h.SessionStore.Get(r, SESSIONNAME)
+	session, err := h.SessionStore.Get(r, SESSIONNAME)
+	if err != nil {
+		xlog.Debugf("Getting session failed: %v", err)
+		StatCount("getting session failed", 1)
+		http.Error(w, err.Error(), http.StatusForbidden)
+		return
+	}
 
 	if session.Values["userID"] == nil {
 		http.Error(w, "authentication required", http.StatusForbidden)
@@ -161,7 +179,14 @@ type GetUploadsHandler struct {
 }
 
 func (h *GetUploadsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	session, _ := h.SessionStore.Get(r, SESSIONNAME)
+	session, err := h.SessionStore.Get(r, SESSIONNAME)
+	if err != nil {
+		xlog.Debugf("Getting session failed: %v", err)
+		StatCount("getting session failed", 1)
+		http.Error(w, err.Error(), http.StatusForbidden)
+		return
+	}
+
 	userID := session.Values["userID"].(int)
 
 	StatCount("get uploads", 1)

@@ -14,7 +14,12 @@ func WebsocketHandler(s *websocket.Conn, dbStore *Store, sessionStore sessions.S
 	StatCount("websocket", 1)
 	xlog.Infof("WebsocketHandler: opened connection")
 	r := s.Request()
-	session, _ := sessionStore.Get(r, SESSIONNAME)
+	session, err := sessionStore.Get(r, SESSIONNAME)
+	if err != nil {
+		xlog.Debugf("Getting session failed: %v", err)
+		StatCount("getting session failed", 1)
+		return
+	}
 
 	sessionData := struct {
 		SessionID string `json:"session_id"`
