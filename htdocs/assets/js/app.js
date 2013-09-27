@@ -7,9 +7,10 @@ satsumaApp.config(['$routeProvider', '$locationProvider', function($routeProvide
 		$routeProvider.when('/tos', { templateUrl: '/assets/partials/tos.html', controller: 'StaticPageCtrl' });
 		$routeProvider.when('/v/:uploadid', { templateUrl: '/assets/partials/pdfviewer.html', controller: 'PDFViewCtrl' });
 		$routeProvider.when('/s/:sessionid', { templateUrl: '/assets/partials/pdfviewer.html', controller: 'PDFViewCtrl' });
+		$routeProvider.when('/settings', { templateUrl: '/assets/partials/settings.html', controller: 'SettingsCtrl' });
 		$routeProvider.when('/', { templateUrl: '/assets/partials/main.html', controller: 'MainCtrl' });
 
-		//$routeProvider.otherwise({ redirectTo: '/' });
+		$routeProvider.otherwise({ redirectTo: '/' });
 	}
 ]);
 
@@ -629,4 +630,8 @@ satsumaApp.controller('MainCtrl', ['$scope', '$http', '$rootScope', function($sc
 		$scope.getUploads();
 		$scope.getSessions();
 	}
+}]);
+
+satsumaApp.controller('SettingsCtrl', [ '$scope', function($scope) {
+	// TODO: implement
 }]);
