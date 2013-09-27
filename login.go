@@ -52,7 +52,7 @@ func VerifyXSRFToken(w http.ResponseWriter, r *http.Request, sessionStore sessio
 		session, _ := sessionStore.Get(r, SESSIONNAME)
 
 		if userID != "" && userID == session.Values["username"].(string) {
-			xlog.Infof("XSRF verification success for user %s", session.Values["usernamw"].(string))
+			xlog.Infof("XSRF verification success for user %s", session.Values["username"].(string))
 			return true
 		} else {
 			xlog.Errorf("XSRF issue: userID = %s session = %s", userID, session.Values["username"].(string))
