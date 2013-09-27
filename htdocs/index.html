@@ -34,6 +34,21 @@
 			<p class="chromeframe">You are using an <strong>outdated</strong> browser. Please <a href="http://browsehappy.com/">upgrade your browser</a> or <a href="http://www.google.com/chromeframe/?redirect=true">activate Google Chrome Frame</a> to improve your experience.</p>
 		<![endif]-->
 		<div id="wrap" class="container" ng-show="checkedLoggedIn">
+			<div class="navbar navbar-fixed-top">
+				<div class="navbar-inner">
+					<div class="container-fluid">
+						<a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+							<span class="icon-bar"></span>
+							<span class="icon-bar"></span>
+							<span class="icon-bar"></span>
+						</a>
+						<a class="brand" ng-href="/">Join my Talk!</a>
+						<div class="nav-collapse" ng-show="loggedIn">
+							<button class="btn pull-right" ng-click="signOut()">Sign Out</button>
+						</div>
+					</div>
+				</div>
+			</div>
 			<div ng-view></div>
 			<div id="push"></div>
 		</div>

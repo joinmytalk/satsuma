@@ -461,6 +461,17 @@ satsumaApp.controller('LoginCtrl', [ '$scope', '$http', '$rootScope', function($
 	$rootScope.checkedLoggedIn = false;
 	$rootScope.loggedIn = false;
 
+	$scope.signOut = function() {
+		$http.post('/api/disconnect').
+		success(function(data, status, headers, config) {
+			$rootScope.loggedIn = false;
+		}).
+		error(function(data, status, headers, config) {
+			$rootScope.loggedIn = false;
+			console.log('disconnect failed: ' + data);
+		});
+	};
+
 	$http.get('/api/loggedin').
 	success(function(data, status, headers, config) {
 		$rootScope.checkedLoggedIn = true;
@@ -596,16 +607,6 @@ satsumaApp.controller('MainCtrl', ['$scope', '$http', '$rootScope', function($sc
 		$scope.error = null;
 	};
 
-	$scope.signOut = function() {
-		$http.post('/api/disconnect').
-		success(function(data, status, headers, config) {
-			$rootScope.loggedIn = false;
-		}).
-		error(function(data, status, headers, config) {
-			$rootScope.loggedIn = false;
-			console.log('disconnect failed: ' + data);
-		});
-	};
 
 	$scope.uploadComplete = function(content, completed) {
 		if (completed) {
