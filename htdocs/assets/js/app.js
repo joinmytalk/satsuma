@@ -7,9 +7,10 @@ satsumaApp.config(['$routeProvider', '$locationProvider', function($routeProvide
 		$routeProvider.when('/tos', { templateUrl: '/assets/partials/tos.html', controller: 'StaticPageCtrl' });
 		$routeProvider.when('/v/:uploadid', { templateUrl: '/assets/partials/pdfviewer.html', controller: 'PDFViewCtrl' });
 		$routeProvider.when('/s/:sessionid', { templateUrl: '/assets/partials/pdfviewer.html', controller: 'PDFViewCtrl' });
+		$routeProvider.when('/settings', { templateUrl: '/assets/partials/settings.html', controller: 'SettingsCtrl' });
 		$routeProvider.when('/', { templateUrl: '/assets/partials/main.html', controller: 'MainCtrl' });
 
-		//$routeProvider.otherwise({ redirectTo: '/' });
+		$routeProvider.otherwise({ redirectTo: '/' });
 	}
 ]);
 
@@ -456,10 +457,22 @@ satsumaApp.controller('PDFViewCtrl', [ '$scope', '$routeParams', '$http', '$loca
 	}
 }]);
 
-satsumaApp.controller('LoginCtrl', [ '$scope', '$http', '$rootScope', function($scope, $http, $rootScope) {
+satsumaApp.controller('LoginCtrl', [ '$scope', '$http', '$rootScope', '$location', function($scope, $http, $rootScope, $location) {
 	console.log('LoginCtrl: new instance');
 	$rootScope.checkedLoggedIn = false;
 	$rootScope.loggedIn = false;
+
+	$scope.signOut = function() {
+		$location.path('/');
+		$http.post('/api/disconnect').
+		success(function(data, status, headers, config) {
+			$rootScope.loggedIn = false;
+		}).
+		error(function(data, status, headers, config) {
+			$rootScope.loggedIn = false;
+			console.log('disconnect failed: ' + data);
+		});
+	};
 
 	$http.get('/api/loggedin').
 	success(function(data, status, headers, config) {
@@ -596,16 +609,6 @@ satsumaApp.controller('MainCtrl', ['$scope', '$http', '$rootScope', function($sc
 		$scope.error = null;
 	};
 
-	$scope.signOut = function() {
-		$http.post('/api/disconnect').
-		success(function(data, status, headers, config) {
-			$rootScope.loggedIn = false;
-		}).
-		error(function(data, status, headers, config) {
-			$rootScope.loggedIn = false;
-			console.log('disconnect failed: ' + data);
-		});
-	};
 
 	$scope.uploadComplete = function(content, completed) {
 		if (completed) {
@@ -628,4 +631,11 @@ satsumaApp.controller('MainCtrl', ['$scope', '$http', '$rootScope', function($sc
 		$scope.getUploads();
 		$scope.getSessions();
 	}
+}]);
+
+satsumaApp.controller('SettingsCtrl', [ '$scope', '$http', function($scope, $http) {
+	$http.get('/api/connected').
+	success(function(data, status, header, config) {
+		$scope.connected = data;
+	});
 }]);

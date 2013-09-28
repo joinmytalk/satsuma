@@ -88,8 +88,9 @@ func main() {
 	apiRouter := pat.New()
 	apiRouter.Get("/api/loggedin", &LoggedInHandler{SessionStore: sessionStore})
 	apiRouter.Get("/api/connect", http.HandlerFunc(auth.SecureUser(func(w http.ResponseWriter, r *http.Request, u auth.User) {
-		Connect(w, r, u, sessionStore, secureCookie)
+		Connect(w, r, u, sessionStore, secureCookie, dbStore)
 	})))
+	apiRouter.Get("/api/connected", &ConnectedHandler{SessionStore: sessionStore, DBStore: dbStore})
 	apiRouter.Post("/api/disconnect", &DisconnectHandler{SessionStore: sessionStore, SecureCookie: secureCookie})
 	apiRouter.Post("/api/upload", &UploadHandler{SessionStore: sessionStore, DBStore: dbStore, UploadStore: fileStore, SecureCookie: secureCookie})
 	apiRouter.Get("/api/getuploads", &GetUploadsHandler{SessionStore: sessionStore, DBStore: dbStore})
@@ -116,6 +117,7 @@ func main() {
 
 	mux.HandleFunc("/contact", deliverIndex)
 	mux.HandleFunc("/tos", deliverIndex)
+	mux.HandleFunc("/settings", deliverIndex)
 
 	// deliver static files from htdocs.
 	mux.Handle("/", http.FileServer(http.Dir(options.HtdocsDir)))

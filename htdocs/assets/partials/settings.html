@@ -1,0 +1,15 @@
+<h2>Settings</h2>
+<p>
+	<span ng-show="connected.gplus">Connected to Google+</span>
+	<a class="btn" href="/auth/gplus" target="_self" ng-hide="connected.gplus">
+		<i class="icon-google-plus-sign"></i>
+		Connect to Google+
+	</a>
+</p>
+<p>
+	<span ng-show="connected.twitter">Connected to Twitter</span>
+	<a class="btn" ng-href="/auth/twitter" target="_self" ng-hide="connected.twitter">
+		<i class="icon-twitter-sign"></i>
+		Connect to Twitter
+	</a>
+</p>

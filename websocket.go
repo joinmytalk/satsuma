@@ -14,7 +14,12 @@ func WebsocketHandler(s *websocket.Conn, dbStore *Store, sessionStore sessions.S
 	StatCount("websocket", 1)
 	xlog.Infof("WebsocketHandler: opened connection")
 	r := s.Request()
-	session, _ := sessionStore.Get(r, SESSIONNAME)
+	session, err := sessionStore.Get(r, SESSIONNAME)
+	if err != nil {
+		xlog.Debugf("Getting session failed: %v", err)
+		StatCount("getting session failed", 1)
+		return
+	}
 
 	sessionData := struct {
 		SessionID string `json:"session_id"`
@@ -34,7 +39,7 @@ func WebsocketHandler(s *websocket.Conn, dbStore *Store, sessionStore sessions.S
 	if session.Values["userID"] == nil {
 		xlog.Errorf("WebsocketHandler is not authenticated -> slave handler")
 		slaveHandler(s, sessionID, dbStore, redisAddr)
-	} else if owner == session.Values["userID"].(string) {
+	} else if owner == session.Values["userID"].(int) {
 		xlog.Infof("WebSocketHandler owner matches -> master handler")
 		masterHandler(s, sessionID, dbStore, redisAddr)
 	} else {

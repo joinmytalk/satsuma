@@ -9,7 +9,7 @@ import (
 	"net/http"
 )
 
-func Connect(w http.ResponseWriter, r *http.Request, u auth.User, sessionStore sessions.Store, secureCookie *securecookie.SecureCookie) {
+func Connect(w http.ResponseWriter, r *http.Request, u auth.User, sessionStore sessions.Store, secureCookie *securecookie.SecureCookie, dbStore *Store) {
 	StatCount("connect call", 1)
 	session, err := sessionStore.Get(r, SESSIONNAME)
 	if err != nil {
@@ -17,20 +17,46 @@ func Connect(w http.ResponseWriter, r *http.Request, u auth.User, sessionStore s
 		session, _ = sessionStore.New(r, SESSIONNAME)
 	}
 
-	userID := u.Provider() + ":" + u.Id()
-	xlog.Debugf("Connect: userID = %s", userID)
+	if userID, ok := session.Values["userID"].(int); ok {
+		xlog.Debugf("Connect: already logged in (userID = %d), connecting account", userID)
+		// we have a valid session -> connect account to user
+		username := u.Provider() + ":" + u.Id()
 
-	// set session values
-	session.Values["userID"] = userID
-	session.Values["email"] = u.Email()
-	session.Values["name"] = u.Name()
-	session.Save(r, w)
+		err := dbStore.AddUser(username, userID)
+		if err != nil {
+			xlog.Errorf("Error adding user: %v", err)
+			http.Error(w, err.Error(), http.StatusForbidden)
+			return
+		}
 
-	// set XSRF-TOKEN for AngularJS
-	xsrftoken, _ := secureCookie.Encode(XSRFTOKEN, userID)
-	http.SetCookie(w, &http.Cookie{Name: XSRFTOKEN, Value: xsrftoken, Path: "/"})
+		w.Header().Set("Location", "/settings")
+	} else {
+		xlog.Debugf("Connect: not logged in, actually log in user.")
+		// no valid session -> actually login user
+		username := u.Provider() + ":" + u.Id()
+		xlog.Debugf("Connect: username = %s", username)
+		userID, err := dbStore.CreateUser(username)
+		if err != nil {
+			xlog.Errorf("Error creating user: %v", err)
+			http.Error(w, err.Error(), http.StatusForbidden)
+			return
+		}
 
-	w.Header().Set("Location", "/")
+		xlog.Debugf("Connect: userID = %d", userID)
+
+		// set session values
+		session.Values["userID"] = userID
+		session.Values["username"] = username
+		session.Values["email"] = u.Email()
+		session.Values["name"] = u.Name()
+		session.Save(r, w)
+
+		// set XSRF-TOKEN for AngularJS
+		xsrftoken, _ := secureCookie.Encode(XSRFTOKEN, username)
+		http.SetCookie(w, &http.Cookie{Name: XSRFTOKEN, Value: xsrftoken, Path: "/"})
+
+		w.Header().Set("Location", "/")
+	}
 	w.WriteHeader(http.StatusFound)
 }
 
@@ -42,11 +68,11 @@ func VerifyXSRFToken(w http.ResponseWriter, r *http.Request, sessionStore sessio
 	if err == nil {
 		session, _ := sessionStore.Get(r, SESSIONNAME)
 
-		if userID != "" && userID == session.Values["userID"].(string) {
-			xlog.Infof("XSRF verification success for user %s", session.Values["userID"].(string))
+		if userID != "" && userID == session.Values["username"].(string) {
+			xlog.Infof("XSRF verification success for user %s", session.Values["username"].(string))
 			return true
 		} else {
-			xlog.Errorf("XSRF issue: userID = %s session = %s", userID, session.Values["userID"].(string))
+			xlog.Errorf("XSRF issue: userID = %s session = %s", userID, session.Values["username"].(string))
 		}
 	}
 
@@ -74,7 +100,7 @@ func (h *DisconnectHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Error fetching session", 500)
 		return
 	}
-	token := session.Values["userID"]
+	token := session.Values["username"]
 	if token == nil {
 		http.Error(w, "Current user not connected", 401)
 		return
@@ -82,6 +108,7 @@ func (h *DisconnectHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// Reset the user's session
 	session.Values["userID"] = nil
+	session.Values["username"] = nil
 	session.Values["name"] = nil
 	session.Values["email"] = nil
 	session.Save(r, w)
@@ -103,8 +130,35 @@ func (h *LoggedInHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	loggedIn := (session.Values["userID"] != nil)
+	loggedIn := (session.Values["username"] != nil)
 
 	w.Header().Set("Content-Type", "application/json")
 	jsonEncoder.Encode(map[string]bool{"logged_in": loggedIn})
+}
+
+type ConnectedHandler struct {
+	SessionStore sessions.Store
+	DBStore      *Store
+}
+
+func (h *ConnectedHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	session, err := h.SessionStore.Get(r, SESSIONNAME)
+	if err != nil {
+		xlog.Errorf("Error fetching session: %v", err)
+		http.Error(w, err.Error(), http.StatusForbidden)
+		return
+	}
+
+	userID := session.Values["userID"].(int)
+
+	systems := h.DBStore.GetConnectedSystemsForUser(userID)
+
+	jsonData := make(map[string]bool)
+
+	for _, s := range systems {
+		jsonData[s] = true
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(jsonData)
 }

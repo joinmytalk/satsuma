@@ -2,7 +2,9 @@ package main
 
 import (
 	"database/sql"
+	"github.com/joinmytalk/xlog"
 	"github.com/russross/meddler"
+	"strings"
 	"time"
 )
 
@@ -18,10 +20,10 @@ func (s *Store) InsertUpload(u *Upload) error {
 	return meddler.Insert(s.sqlDB, "uploads", u)
 }
 
-func (s *Store) GetUploadByPublicID(publicID string, userID string) (*Upload, error) {
+func (s *Store) GetUploadByPublicID(publicID string, userID int) (*Upload, error) {
 	uploadEntry := &Upload{}
 
-	err := meddler.QueryRow(s.sqlDB, uploadEntry, "select id from uploads where public_id = ? and owner = ?", publicID, userID)
+	err := meddler.QueryRow(s.sqlDB, uploadEntry, "select id from uploads where public_id = ? and user_id = ?", publicID, userID)
 	if err != nil {
 		uploadEntry = nil
 	}
@@ -32,8 +34,8 @@ func (s *Store) InsertSession(sess *Session) error {
 	return meddler.Insert(s.sqlDB, "sessions", sess)
 }
 
-func (s *Store) DeleteUploadByPublicID(publicID string, userID string) (int64, error) {
-	result, err := s.sqlDB.Exec("DELETE FROM uploads WHERE public_id = ? AND owner = ?", publicID, userID)
+func (s *Store) DeleteUploadByPublicID(publicID string, userID int) (int64, error) {
+	result, err := s.sqlDB.Exec("DELETE FROM uploads WHERE public_id = ? AND user_id = ?", publicID, userID)
 	if err != nil {
 		return 0, err
 	}
@@ -46,16 +48,17 @@ func (s *Store) DeleteUploadByPublicID(publicID string, userID string) (int64, e
 	return rowsAffected, nil
 }
 
-func (s *Store) GetUploadsForUser(userID string) ([]*Upload, error) {
+func (s *Store) GetUploadsForUser(userID int) ([]*Upload, error) {
 	result := []*Upload{}
-	err := meddler.QueryAll(s.sqlDB, &result, "SELECT * FROM uploads WHERE owner = ?", userID)
+	err := meddler.QueryAll(s.sqlDB, &result, "SELECT id, title, public_id, user_id, uploaded FROM uploads WHERE user_id = ?", userID)
 	if err != nil {
 		result = nil
 	}
 	return result, err
 }
 
-func (s *Store) GetSessions(userID string) ([]*SessionData, error) {
+func (s *Store) GetSessions(userID int) ([]*SessionData, error) {
+	xlog.Debugf("GetSessions: userID = %d", userID)
 	result := []*SessionData{}
 	err := meddler.QueryAll(s.sqlDB, &result,
 		`SELECT sessions.public_id AS public_id, 
@@ -64,7 +67,7 @@ func (s *Store) GetSessions(userID string) ([]*SessionData, error) {
 			uploads.title AS title
 		FROM uploads, sessions 
 		WHERE sessions.upload_id = uploads.id AND 
-			uploads.owner = ? 
+			uploads.user_id = ? 
 		ORDER BY sessions.started DESC`, userID)
 	if err != nil {
 		result = nil
@@ -80,13 +83,13 @@ func (s *Store) GetSessions(userID string) ([]*SessionData, error) {
 	return result, err
 }
 
-func (s *Store) GetSessionInfoByPublicID(publicID, userID string) (*SessionInfo, error) {
+func (s *Store) GetSessionInfoByPublicID(publicID string, userID int) (*SessionInfo, error) {
 	result := &SessionInfo{}
 	err := meddler.QueryRow(s.sqlDB, result,
 		`SELECT 
 			uploads.title AS title, 
 			uploads.public_id AS public_id, 
-			uploads.owner AS owner
+			uploads.user_id AS user_id
 			FROM uploads, sessions
 			WHERE sessions.upload_id = uploads.id AND
 				sessions.public_id = ?`, publicID)
@@ -116,18 +119,18 @@ func (s *Store) GetSessionInfoByPublicID(publicID, userID string) (*SessionInfo,
 		return nil, err
 	}
 	result.Cmds = cmds
-	result.IsOwner = (userID != "" && result.Owner == userID)
+	result.IsOwner = (userID != 0 && result.UserID == userID)
 
 	return result, err
 }
 
-func (s *Store) GetOwnerForSession(publicID string) (owner string, sessionID int, err error) {
+func (s *Store) GetOwnerForSession(publicID string) (userID int, sessionID int, err error) {
 	ownerData := struct {
-		Owner string `meddler:"owner"`
-		ID    int    `meddler:"session_id"`
+		UserID int `meddler:"user_id"`
+		ID     int `meddler:"session_id"`
 	}{}
-	err = meddler.QueryRow(s.sqlDB, &ownerData, "SELECT uploads.owner AS owner, sessions.id AS session_id FROM uploads, sessions WHERE sessions.public_id = ? AND sessions.upload_id = uploads.id LIMIT 1", publicID)
-	return ownerData.Owner, ownerData.ID, err
+	err = meddler.QueryRow(s.sqlDB, &ownerData, "SELECT uploads.user_id AS user_id, sessions.id AS session_id FROM uploads, sessions WHERE sessions.public_id = ? AND sessions.upload_id = uploads.id LIMIT 1", publicID)
+	return ownerData.UserID, ownerData.ID, err
 }
 
 func (s *Store) StopSession(publicID string) {
@@ -138,8 +141,8 @@ func (s *Store) DeleteSession(publicID string) {
 	s.sqlDB.Exec("DELETE FROM sessions WHERE public_id = ?", publicID)
 }
 
-func (s *Store) SetTitleForPresentation(title, publicID, userID string) error {
-	_, err := s.sqlDB.Exec("UPDATE uploads SET title = ? WHERE public_id = ? AND owner = ?", title, publicID, userID)
+func (s *Store) SetTitleForPresentation(title, publicID string, userID int) error {
+	_, err := s.sqlDB.Exec("UPDATE uploads SET title = ? WHERE public_id = ? AND user_id = ?", title, publicID, userID)
 	return err
 }
 
@@ -150,4 +153,93 @@ func (s *Store) InsertCommand(cmd *Command) error {
 func (s *Store) ClearSlide(sessionID, page int) error {
 	_, err := s.sqlDB.Exec("DELETE FROM commands WHERE session_id = ? AND page = ? AND cmd != 'gotoPage'", sessionID, page)
 	return err
+}
+
+func (s *Store) AddUser(username string, userID int) error {
+	userData := []*struct {
+		UserID int `meddler:"user_id"`
+	}{}
+	err := meddler.QueryAll(s.sqlDB, &userData, "SELECT user_id FROM accounts WHERE username = ? LIMIT 1", username)
+	if err != nil {
+		return err
+	}
+
+	if len(userData) > 0 {
+		// account already logged in previously, migrate data to this user.
+
+		// first, set account entries to current user.
+		_, err := s.sqlDB.Exec("UPDATE accounts SET user_id = ? WHERE id = ?", userID, userData[0].UserID)
+		if err != nil {
+			return err
+		}
+
+		// then migrate uploads to current user.
+		_, err = s.sqlDB.Exec("UPDATE uploads SET user_id = ? WHERE user_id = ?", userID, userData[0].UserID)
+		if err != nil {
+			return err
+		}
+
+		// finally, delete old user. ON DELETE CASCADE should clean up any old cruft.
+		_, err = s.sqlDB.Exec("DELETE FROM users WHERE id = ?", userData[0].UserID)
+	} else {
+		// account is unknown, simply add new entry to accounts table.
+		_, err := s.sqlDB.Exec("INSERT INTO accounts (username, user_id) VALUES (?, ?)", username, userID)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (s *Store) CreateUser(username string) (int, error) {
+	userData := []*struct {
+		UserID int `meddler:"user_id"`
+	}{}
+	err := meddler.QueryAll(s.sqlDB, &userData, "SELECT user_id FROM accounts WHERE username = ? LIMIT 1", username)
+	if err != nil {
+		return 0, err
+	}
+
+	if len(userData) > 0 {
+		return userData[0].UserID, nil
+	}
+
+	result, err := s.sqlDB.Exec("INSERT INTO users (id) VALUES(NULL)")
+	if err != nil {
+		return 0, err
+	}
+
+	lastInsertID, _ := result.LastInsertId()
+
+	_, err = s.sqlDB.Exec("INSERT INTO accounts (username, user_id) VALUES (?, ?)", username, lastInsertID)
+	if err != nil {
+		return 0, err
+	}
+
+	return int(lastInsertID), nil
+}
+
+func (s *Store) GetConnectedSystemsForUser(userID int) []string {
+	systemMappings := map[string]string{
+		"google.com":  "gplus",
+		"twitter.com": "twitter",
+	}
+
+	connectedAccounts := []*struct {
+		Username string `meddler:"username"`
+	}{}
+
+	if err := meddler.QueryAll(s.sqlDB, &connectedAccounts, "SELECT username FROM accounts WHERE user_id = ?", userID); err != nil {
+		xlog.Errorf("Querying usernames for userID %d failed: %v", userID, err)
+		return []string{}
+	}
+
+	systems := make([]string, 0, len(connectedAccounts))
+
+	for _, acc := range connectedAccounts {
+		systems = append(systems, systemMappings[strings.Split(acc.Username, ":")[0]])
+	}
+
+	return systems
 }
