@@ -42,8 +42,14 @@ satsumaApp.controller('PDFViewCtrl', [ '$scope', '$routeParams', '$http', '$loca
 	$scope.oldX = $scope.oldY = 0;
 	$scope.cmds = [ ];
 
+	$scope.documentProgress = function(progressData) {
+		$scope.loadProgress = (100 * progressData.loaded) / progressData.total;
+		$scope.loadProgress = Math.round($scope.loadProgress*100)/100;
+		$scope.$apply();
+	};
+
 	$scope.loadPDF = function(path) {
-		PDFJS.getDocument(path).then(function(_pdfDoc) {
+		PDFJS.getDocument(path, null, null, $scope.documentProgress).then(function(_pdfDoc) {
 			$scope.scale = $scope.origScale;
 			$scope.pdfDoc = _pdfDoc;
 			$scope.renderPage($scope.pageNum, function(success) {
@@ -52,10 +58,6 @@ satsumaApp.controller('PDFViewCtrl', [ '$scope', '$routeParams', '$http', '$loca
 			});
 		}, function(message, exception) {
 			console.log("PDF load error: " + message);
-		}, function(progressData) {
-			$scope.loadProgress = (100 * progressData.loaded) / progressData.total;
-			$scope.loadProgress = Math.round($scope.loadProgress*100)/100;
-			$scope.$apply();
 		});
 	};
 
