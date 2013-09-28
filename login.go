@@ -17,29 +17,46 @@ func Connect(w http.ResponseWriter, r *http.Request, u auth.User, sessionStore s
 		session, _ = sessionStore.New(r, SESSIONNAME)
 	}
 
-	username := u.Provider() + ":" + u.Id()
-	xlog.Debugf("Connect: username = %s", username)
-	userID, err := dbStore.CreateUser(username)
-	if err != nil {
-		xlog.Errorf("Error creating user: %v", err)
-		http.Error(w, err.Error(), http.StatusForbidden)
-		return
+	if userID, ok := session.Values["userID"].(int); ok {
+		xlog.Debugf("Connect: already logged in (userID = %d), connecting account", userID)
+		// we have a valid session -> connect account to user
+		username := u.Provider() + ":" + u.Id()
+
+		err := dbStore.AddUser(username, userID)
+		if err != nil {
+			xlog.Errorf("Error adding user: %v", err)
+			http.Error(w, err.Error(), http.StatusForbidden)
+			return
+		}
+
+		w.Header().Set("Location", "/settings")
+	} else {
+		xlog.Debugf("Connect: not logged in, actually log in user.")
+		// no valid session -> actually login user
+		username := u.Provider() + ":" + u.Id()
+		xlog.Debugf("Connect: username = %s", username)
+		userID, err := dbStore.CreateUser(username)
+		if err != nil {
+			xlog.Errorf("Error creating user: %v", err)
+			http.Error(w, err.Error(), http.StatusForbidden)
+			return
+		}
+
+		xlog.Debugf("Connect: userID = %d", userID)
+
+		// set session values
+		session.Values["userID"] = userID
+		session.Values["username"] = username
+		session.Values["email"] = u.Email()
+		session.Values["name"] = u.Name()
+		session.Save(r, w)
+
+		// set XSRF-TOKEN for AngularJS
+		xsrftoken, _ := secureCookie.Encode(XSRFTOKEN, username)
+		http.SetCookie(w, &http.Cookie{Name: XSRFTOKEN, Value: xsrftoken, Path: "/"})
+
+		w.Header().Set("Location", "/")
 	}
-
-	xlog.Debugf("Connect: userID = %d", userID)
-
-	// set session values
-	session.Values["userID"] = userID
-	session.Values["username"] = username
-	session.Values["email"] = u.Email()
-	session.Values["name"] = u.Name()
-	session.Save(r, w)
-
-	// set XSRF-TOKEN for AngularJS
-	xsrftoken, _ := secureCookie.Encode(XSRFTOKEN, username)
-	http.SetCookie(w, &http.Cookie{Name: XSRFTOKEN, Value: xsrftoken, Path: "/"})
-
-	w.Header().Set("Location", "/")
 	w.WriteHeader(http.StatusFound)
 }
 

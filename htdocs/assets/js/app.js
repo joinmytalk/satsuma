@@ -457,12 +457,13 @@ satsumaApp.controller('PDFViewCtrl', [ '$scope', '$routeParams', '$http', '$loca
 	}
 }]);
 
-satsumaApp.controller('LoginCtrl', [ '$scope', '$http', '$rootScope', function($scope, $http, $rootScope) {
+satsumaApp.controller('LoginCtrl', [ '$scope', '$http', '$rootScope', '$location', function($scope, $http, $rootScope, $location) {
 	console.log('LoginCtrl: new instance');
 	$rootScope.checkedLoggedIn = false;
 	$rootScope.loggedIn = false;
 
 	$scope.signOut = function() {
+		$location.path('/');
 		$http.post('/api/disconnect').
 		success(function(data, status, headers, config) {
 			$rootScope.loggedIn = false;

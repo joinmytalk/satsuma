@@ -155,6 +155,43 @@ func (s *Store) ClearSlide(sessionID, page int) error {
 	return err
 }
 
+func (s *Store) AddUser(username string, userID int) error {
+	userData := []*struct {
+		UserID int `meddler:"user_id"`
+	}{}
+	err := meddler.QueryAll(s.sqlDB, &userData, "SELECT user_id FROM accounts WHERE username = ? LIMIT 1", username)
+	if err != nil {
+		return err
+	}
+
+	if len(userData) > 0 {
+		// account already logged in previously, migrate data to this user.
+
+		// first, set account entries to current user.
+		_, err := s.sqlDB.Exec("UPDATE accounts SET user_id = ? WHERE id = ?", userID, userData[0].UserID)
+		if err != nil {
+			return err
+		}
+
+		// then migrate uploads to current user.
+		_, err = s.sqlDB.Exec("UPDATE uploads SET user_id = ? WHERE user_id = ?", userID, userData[0].UserID)
+		if err != nil {
+			return err
+		}
+
+		// finally, delete old user. ON DELETE CASCADE should clean up any old cruft.
+		_, err = s.sqlDB.Exec("DELETE FROM users WHERE id = ?", userData[0].UserID)
+	} else {
+		// account is unknown, simply add new entry to accounts table.
+		_, err := s.sqlDB.Exec("INSERT INTO accounts (username, user_id) VALUES (?, ?)", username, userID)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (s *Store) CreateUser(username string) (int, error) {
 	userData := []*struct {
 		UserID int `meddler:"user_id"`
