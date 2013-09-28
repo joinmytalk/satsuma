@@ -118,3 +118,30 @@ func (h *LoggedInHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	jsonEncoder.Encode(map[string]bool{"logged_in": loggedIn})
 }
+
+type ConnectedHandler struct {
+	SessionStore sessions.Store
+	DBStore      *Store
+}
+
+func (h *ConnectedHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	session, err := h.SessionStore.Get(r, SESSIONNAME)
+	if err != nil {
+		xlog.Errorf("Error fetching session: %v", err)
+		http.Error(w, err.Error(), http.StatusForbidden)
+		return
+	}
+
+	userID := session.Values["userID"].(int)
+
+	systems := h.DBStore.GetConnectedSystemsForUser(userID)
+
+	jsonData := make(map[string]bool)
+
+	for _, s := range systems {
+		jsonData[s] = true
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(jsonData)
+}

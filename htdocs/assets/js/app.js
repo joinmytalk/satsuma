@@ -632,6 +632,9 @@ satsumaApp.controller('MainCtrl', ['$scope', '$http', '$rootScope', function($sc
 	}
 }]);
 
-satsumaApp.controller('SettingsCtrl', [ '$scope', function($scope) {
-	// TODO: implement
+satsumaApp.controller('SettingsCtrl', [ '$scope', '$http', function($scope, $http) {
+	$http.get('/api/connected').
+	success(function(data, status, header, config) {
+		$scope.connected = data;
+	});
 }]);

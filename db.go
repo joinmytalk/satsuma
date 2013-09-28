@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"github.com/joinmytalk/xlog"
 	"github.com/russross/meddler"
+	"strings"
 	"time"
 )
 
@@ -180,4 +181,28 @@ func (s *Store) CreateUser(username string) (int, error) {
 	}
 
 	return int(lastInsertID), nil
+}
+
+func (s *Store) GetConnectedSystemsForUser(userID int) []string {
+	systemMappings := map[string]string{
+		"google.com":  "gplus",
+		"twitter.com": "twitter",
+	}
+
+	connectedAccounts := []*struct {
+		Username string `meddler:"username"`
+	}{}
+
+	if err := meddler.QueryAll(s.sqlDB, &connectedAccounts, "SELECT username FROM accounts WHERE user_id = ?", userID); err != nil {
+		xlog.Errorf("Querying usernames for userID %d failed: %v", userID, err)
+		return []string{}
+	}
+
+	systems := make([]string, 0, len(connectedAccounts))
+
+	for _, acc := range connectedAccounts {
+		systems = append(systems, systemMappings[strings.Split(acc.Username, ":")[0]])
+	}
+
+	return systems
 }
