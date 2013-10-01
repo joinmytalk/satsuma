@@ -122,7 +122,7 @@ func main() {
 	// deliver static files from htdocs.
 	mux.Handle("/", http.FileServer(http.Dir(options.HtdocsDir)))
 
-	var handler http.Handler = mux
+	handler := http.Handler(mux)
 	if options.AccessLog {
 		handler = Logger(handler)
 	}

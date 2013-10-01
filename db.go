@@ -8,18 +8,23 @@ import (
 	"time"
 )
 
+// Store implements the higher-level operations on the data store.
 type Store struct {
 	sqlDB *sql.DB
 }
 
+// NewStore creates a new Store object from a database connection.
 func NewStore(db *sql.DB) *Store {
 	return &Store{sqlDB: db}
 }
 
+// InsertUpload inserts an Upload object into the uploads table.
 func (s *Store) InsertUpload(u *Upload) error {
 	return meddler.Insert(s.sqlDB, "uploads", u)
 }
 
+// GetUploadByPublicID returns an Upload object, identified by its
+// publicID and userID.
 func (s *Store) GetUploadByPublicID(publicID string, userID int) (*Upload, error) {
 	uploadEntry := &Upload{}
 
@@ -30,10 +35,12 @@ func (s *Store) GetUploadByPublicID(publicID string, userID int) (*Upload, error
 	return uploadEntry, err
 }
 
+// InsertSession inserts a Session object into the sessions table.
 func (s *Store) InsertSession(sess *Session) error {
 	return meddler.Insert(s.sqlDB, "sessions", sess)
 }
 
+// DeleteUploadByPublicID deletes an upload, identified by its publicID and its userID.
 func (s *Store) DeleteUploadByPublicID(publicID string, userID int) (int64, error) {
 	result, err := s.sqlDB.Exec("DELETE FROM uploads WHERE public_id = ? AND user_id = ?", publicID, userID)
 	if err != nil {
@@ -48,6 +55,7 @@ func (s *Store) DeleteUploadByPublicID(publicID string, userID int) (int64, erro
 	return rowsAffected, nil
 }
 
+// GetUploadsForUser returns a slice of Upload objects for the specified user.
 func (s *Store) GetUploadsForUser(userID int) ([]*Upload, error) {
 	result := []*Upload{}
 	err := meddler.QueryAll(s.sqlDB, &result, "SELECT id, title, public_id, user_id, uploaded FROM uploads WHERE user_id = ?", userID)
@@ -57,6 +65,7 @@ func (s *Store) GetUploadsForUser(userID int) ([]*Upload, error) {
 	return result, err
 }
 
+// GetSessions returns a slice of SessionData objects for the specified user.
 func (s *Store) GetSessions(userID int) ([]*SessionData, error) {
 	xlog.Debugf("GetSessions: userID = %d", userID)
 	result := []*SessionData{}
@@ -83,6 +92,8 @@ func (s *Store) GetSessions(userID int) ([]*SessionData, error) {
 	return result, err
 }
 
+// GetSessionInfoByPublicID returns a SessionInfo object for a session, identified
+// by its publicID and userID.
 func (s *Store) GetSessionInfoByPublicID(publicID string, userID int) (*SessionInfo, error) {
 	result := &SessionInfo{}
 	err := meddler.QueryRow(s.sqlDB, result,
@@ -124,6 +135,8 @@ func (s *Store) GetSessionInfoByPublicID(publicID string, userID int) (*SessionI
 	return result, err
 }
 
+// GetOwnerForSession returns the userID and numeric sessionID for a session, identified
+// by its publicID.
 func (s *Store) GetOwnerForSession(publicID string) (userID int, sessionID int, err error) {
 	ownerData := struct {
 		UserID int `meddler:"user_id"`
@@ -133,28 +146,37 @@ func (s *Store) GetOwnerForSession(publicID string) (userID int, sessionID int, 
 	return ownerData.UserID, ownerData.ID, err
 }
 
+// StopSession stops a session, identified by its publicID.
 func (s *Store) StopSession(publicID string) {
 	s.sqlDB.Exec("UPDATE sessions SET ended = NOW() WHERE public_id = ?", publicID)
 }
 
+// DeleteSession deletes a session, identified by its publicID.
 func (s *Store) DeleteSession(publicID string) {
 	s.sqlDB.Exec("DELETE FROM sessions WHERE public_id = ?", publicID)
 }
 
+// SetTitleForPresentation sets a new title for a presentation, identified
+// by its publicID and userID.
 func (s *Store) SetTitleForPresentation(title, publicID string, userID int) error {
 	_, err := s.sqlDB.Exec("UPDATE uploads SET title = ? WHERE public_id = ? AND user_id = ?", title, publicID, userID)
 	return err
 }
 
+// InsertCommand inserts a Command object into the commands table.
 func (s *Store) InsertCommand(cmd *Command) error {
 	return meddler.Insert(s.sqlDB, "commands", cmd)
 }
 
+// ClearSlide deletes all drawing-related commands for certain page of a session,
+// identified by its sessionID.
 func (s *Store) ClearSlide(sessionID, page int) error {
 	_, err := s.sqlDB.Exec("DELETE FROM commands WHERE session_id = ? AND page = ? AND cmd != 'gotoPage'", sessionID, page)
 	return err
 }
 
+// AddUser adds a new account (identified by username) to a user, identified by its
+// userID.
 func (s *Store) AddUser(username string, userID int) error {
 	userData := []*struct {
 		UserID int `meddler:"user_id"`
@@ -192,6 +214,9 @@ func (s *Store) AddUser(username string, userID int) error {
 	return nil
 }
 
+// CreateUser checks whether an account for the specified username exists. If it
+// does, then it returns its userID, otherwise it creates a new user and a new
+// account with the specified username and links the account to the user.
 func (s *Store) CreateUser(username string) (int, error) {
 	userData := []*struct {
 		UserID int `meddler:"user_id"`
@@ -220,6 +245,8 @@ func (s *Store) CreateUser(username string) (int, error) {
 	return int(lastInsertID), nil
 }
 
+// GetConnectedSystemsForUser returns a slice of auth service identifiers
+// for which accounts exist that are associated with the specified userID.
 func (s *Store) GetConnectedSystemsForUser(userID int) []string {
 	systemMappings := map[string]string{
 		"google.com":  "gplus",

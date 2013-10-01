@@ -76,7 +76,7 @@ func (h *StartSessionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 	json.NewEncoder(w).Encode(map[string]string{"id": id})
 }
 
-// used by Store.GetSessions
+// SessionData is used by Store.GetSessions
 type SessionData struct {
 	PublicID  string    `meddler:"public_id" json:"_id"`
 	Title     string    `meddler:"title" json:"title"`
