@@ -1,6 +1,8 @@
 var satsumaApp = angular.module('satsuma', [ 'ngUpload' ]);
 
-satsumaApp.config(['$routeProvider', '$locationProvider', function($routeProvider, $locationProvider) {
+satsumaApp.config(['$routeProvider', '$locationProvider', '$logProvider', function($routeProvider, $locationProvider, $logProvider) {
+		$logProvider.debugEnabled(true);
+
 		$locationProvider.html5Mode(true);
 
 		$routeProvider.when('/contact', { templateUrl: '/assets/partials/contact.html', controller: 'StaticPageCtrl' });
@@ -18,7 +20,7 @@ satsumaApp.controller('StaticPageCtrl', [ '$scope', function($scope) {
 	// nothing.
 }]);
 
-satsumaApp.controller('PDFViewCtrl', [ '$scope', '$routeParams', '$http', '$location', function($scope, $routeParams, $http, $location) {
+satsumaApp.controller('PDFViewCtrl', [ '$scope', '$routeParams', '$http', '$location', '$log', function($scope, $routeParams, $http, $location, $log) {
 	if ($routeParams.uploadid) {
 		$scope.type = "viewer";
 		$scope.id = $routeParams.uploadid;
@@ -26,7 +28,7 @@ satsumaApp.controller('PDFViewCtrl', [ '$scope', '$routeParams', '$http', '$loca
 		$scope.sessionId = $routeParams.sessionid;
 		$scope.type = "session";
 	};
-	console.log('PDFViewCtrl: new instance. type = ' + $scope.type);
+	$log.log('PDFViewCtrl: new instance. type = ' + $scope.type);
 
 	$scope.pageNum = 1;
 	$scope.loadProgress = 0;
@@ -57,7 +59,7 @@ satsumaApp.controller('PDFViewCtrl', [ '$scope', '$routeParams', '$http', '$loca
 				$scope.$apply();
 			});
 		}, function(message, exception) {
-			console.log("PDF load error: " + message);
+			$log.log("PDF load error: " + message);
 		});
 	};
 
@@ -66,7 +68,7 @@ satsumaApp.controller('PDFViewCtrl', [ '$scope', '$routeParams', '$http', '$loca
 			var viewport = page.getViewport($scope.scale);
 			if ($scope.fullscreen) {
 				var new_scale = Math.min($scope.scale * (window.screen.height / viewport.height), $scope.scale * (window.screen.width / viewport.width));
-				console.log('scale = ' + $scope.scale + ' new scale = ' + new_scale);
+				$log.log('scale = ' + $scope.scale + ' new scale = ' + new_scale);
 				viewport = page.getViewport(new_scale);
 			}
 
@@ -109,7 +111,7 @@ satsumaApp.controller('PDFViewCtrl', [ '$scope', '$routeParams', '$http', '$loca
 			$scope.renderPage($scope.pageNum, null);
 			break;
 		default:
-			console.log('unknown/unimplemented command ' + cmd.cmd);
+			$log.log('unknown/unimplemented command ' + cmd.cmd);
 		}
 	};
 
@@ -161,7 +163,7 @@ satsumaApp.controller('PDFViewCtrl', [ '$scope', '$routeParams', '$http', '$loca
 		$('#canvas_wrapper').unbind('webkitfullscreenchange mozfullscreenchange fullscreenchange');
 		$('#canvas_wrapper').bind('webkitfullscreenchange mozfullscreenchange fullscreenchange', function() {
 			$scope.fullscreen = !$scope.fullscreen;
-			console.log('fullscreen change: fullscreen = ' + $scope.fullscreen);
+			$log.log('fullscreen change: fullscreen = ' + $scope.fullscreen);
 			if ($scope.fullscreen) {
 				$(window).keydown($scope.handleKey);
 			} else {
@@ -179,7 +181,7 @@ satsumaApp.controller('PDFViewCtrl', [ '$scope', '$routeParams', '$http', '$loca
 		} else if (canvas_wrapper.webkitRequestFullscreen) {
 			canvas_wrapper.webkitRequestFullScreen();
 		} else {
-			console.log('no requestFullscreen function found!');
+			$log.log('no requestFullscreen function found!');
 		}
 	};
 
@@ -221,25 +223,25 @@ satsumaApp.controller('PDFViewCtrl', [ '$scope', '$routeParams', '$http', '$loca
 	$scope.sendCmd = function(data) {
 		var jsonData = JSON.stringify(data);
 		if ($scope.wsSend) {
-			console.log('sendCmd: sending data: ' + jsonData);
+			$log.log('sendCmd: sending data: ' + jsonData);
 			$scope.ws.send(jsonData);
 			$scope.cmds.push(data);
 		}
 	};
 
 	$scope.openWebSocketMaster = function() {
-		console.log('WebSocket: onopen for master called');
+		$log.log('WebSocket: onopen for master called');
 		$scope.ws.send(JSON.stringify({"session_id": $scope.sessionId}));
 		$scope.wsSend = true;
 	};
 
 	$scope.openWebSocketSlave = function() {
-		console.log('WebSocket: onopen for slave called');
+		$log.log('WebSocket: onopen for slave called');
 		$scope.ws.send(JSON.stringify({"session_id": $scope.sessionId}));
 	};
 
 	$scope.onMessageSlave = function(evt) {
-		console.log('onMessageSlave: received message from server');
+		$log.log('onMessageSlave: received message from server');
 		var data = JSON.parse(evt.data);
 		$scope.executeCommand(data);
 		$scope.cmds.push(data);
@@ -247,7 +249,7 @@ satsumaApp.controller('PDFViewCtrl', [ '$scope', '$routeParams', '$http', '$loca
 
 	$scope.reconnectWebsocket = function(evt) {
 		if ($scope.ws) {
-			console.log('reconnecting WebSocket');
+			$log.log('reconnecting WebSocket');
 			var newWs = new WebSocket($scope.wsURL);
 			newWs.onclose = $scope.ws.onclose;
 			newWs.onopen = $scope.ws.onopen;
@@ -258,7 +260,7 @@ satsumaApp.controller('PDFViewCtrl', [ '$scope', '$routeParams', '$http', '$loca
 	};
 
 	$scope.logWebsocketError = function(evt) {
-		console.log('websocket error: ' + evt.data);
+		$log.log('websocket error: ' + evt.data);
 	};
 
 	$scope.bindCanvas = function() {
@@ -430,7 +432,7 @@ satsumaApp.controller('PDFViewCtrl', [ '$scope', '$routeParams', '$http', '$loca
 	case "session":
 		$http.get('/api/sessioninfo/' + $scope.sessionId).
 		success(function(data, status, header, config) {
-			console.log('session info: ', data);
+			$log.log('session info: ', data);
 			$scope.title = data.title;
 			$scope.id = data.upload_id;
 			$scope.owner = data.owner;
@@ -441,14 +443,14 @@ satsumaApp.controller('PDFViewCtrl', [ '$scope', '$routeParams', '$http', '$loca
 			$scope.loadPDF("/userdata/" + $scope.id + ".pdf");
 			var proto = (window.location.protocol == "https:" ? "wss:" : "ws:");
 			$scope.wsURL = proto + "//" + window.location.host + "/api/ws";
-			console.log('Opening WebSocket to ' + $scope.wsURL);
+			$log.log('Opening WebSocket to ' + $scope.wsURL);
 			$scope.ws = new WebSocket($scope.wsURL);
 			if ($scope.owner) {
 				$scope.bindCanvas();
-				console.log('setting onopen to openWebSocketMaster');
+				$log.log('setting onopen to openWebSocketMaster');
 				$scope.ws.onopen = $scope.openWebSocketMaster;
 			} else {
-				console.log('setting onmessage to onMessageSlave');
+				$log.log('setting onmessage to onMessageSlave');
 				$scope.ws.onopen = $scope.openWebSocketSlave;
 				$scope.ws.onmessage = $scope.onMessageSlave;
 			}
@@ -459,8 +461,8 @@ satsumaApp.controller('PDFViewCtrl', [ '$scope', '$routeParams', '$http', '$loca
 	}
 }]);
 
-satsumaApp.controller('LoginCtrl', [ '$scope', '$http', '$rootScope', '$location', function($scope, $http, $rootScope, $location) {
-	console.log('LoginCtrl: new instance');
+satsumaApp.controller('LoginCtrl', [ '$scope', '$http', '$rootScope', '$location', '$log', function($scope, $http, $rootScope, $location, $log) {
+	$log.log('LoginCtrl: new instance');
 	$rootScope.checkedLoggedIn = false;
 	$rootScope.loggedIn = false;
 
@@ -472,7 +474,7 @@ satsumaApp.controller('LoginCtrl', [ '$scope', '$http', '$rootScope', '$location
 		}).
 		error(function(data, status, headers, config) {
 			$rootScope.loggedIn = false;
-			console.log('disconnect failed: ' + data);
+			$log.error('disconnect failed: ' + data);
 		});
 	};
 
@@ -480,13 +482,13 @@ satsumaApp.controller('LoginCtrl', [ '$scope', '$http', '$rootScope', '$location
 	success(function(data, status, headers, config) {
 		$rootScope.checkedLoggedIn = true;
 		$rootScope.loggedIn = data.logged_in;
-		console.log('LoginCtrl: loggedIn = ' + $rootScope.loggedIn);
+		$log.log('LoginCtrl: loggedIn = ' + $rootScope.loggedIn);
 		$rootScope.$broadcast('loggedIn');
 	});
 }]);
 
-satsumaApp.controller('MainCtrl', ['$scope', '$http', '$rootScope', function($scope, $http, $rootScope) {
-	console.log('MainCtrl: new instance');
+satsumaApp.controller('MainCtrl', ['$scope', '$http', '$rootScope', '$log', function($scope, $http, $rootScope, $log) {
+	$log.log('MainCtrl: new instance');
 
 	$scope.error = null;
 	$scope.uploads = [ ];
@@ -496,7 +498,7 @@ satsumaApp.controller('MainCtrl', ['$scope', '$http', '$rootScope', function($sc
 	$scope.loading_sessions = false;
 
 	window.signinCallback = function(authData) {
-		console.log('signinCallback called');
+		$log.log('signinCallback called');
 		$scope.error = null;
 		if (authData['access_token']) {
 			$http.post('/api/connect', authData['code']).
@@ -539,7 +541,7 @@ satsumaApp.controller('MainCtrl', ['$scope', '$http', '$rootScope', function($sc
 			$scope.getSessions();
 		}).
 		error(function() {
-			console.log('deleting upload failed');
+			$log.error('deleting upload failed');
 		});
 	};
 
@@ -560,7 +562,7 @@ satsumaApp.controller('MainCtrl', ['$scope', '$http', '$rootScope', function($sc
 			$scope.uploads[idx].renaming = false;
 		}).
 		error(function() {
-			console.log('renaming upload failed');
+			$log.error('renaming upload failed');
 			$scope.uploads[idx].renaming = false;
 		});
 	};
@@ -583,7 +585,7 @@ satsumaApp.controller('MainCtrl', ['$scope', '$http', '$rootScope', function($sc
 			$scope.getSessions();
 		}).
 		error(function() {
-			console.log('starting session failed');
+			$log.error('starting session failed');
 		});
 	};
 
@@ -593,7 +595,7 @@ satsumaApp.controller('MainCtrl', ['$scope', '$http', '$rootScope', function($sc
 			$scope.getSessions();
 		}).
 		error(function() {
-			console.log('stopping session failed');
+			$log.error('stopping session failed');
 		});
 	};
 
@@ -603,7 +605,7 @@ satsumaApp.controller('MainCtrl', ['$scope', '$http', '$rootScope', function($sc
 			$scope.getSessions();
 		}).
 		error(function() {
-			console.log('stopping session failed');
+			$log.error('stopping session failed');
 		});
 	};
 
@@ -629,7 +631,7 @@ satsumaApp.controller('MainCtrl', ['$scope', '$http', '$rootScope', function($sc
 	};
 
 	if ($rootScope.loggedIn) {
-		console.log('logged in, loading uploads and sessions');
+		$log.log('logged in, loading uploads and sessions');
 		$scope.getUploads();
 		$scope.getSessions();
 	}
