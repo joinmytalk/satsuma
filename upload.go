@@ -10,6 +10,7 @@ import (
 	"time"
 )
 
+// Upload describes an uploaded presentation.
 type Upload struct {
 	ID       int       `meddler:"id,pk" json:"-"`
 	Title    string    `meddler:"title" json:"title"`
@@ -18,6 +19,7 @@ type Upload struct {
 	Uploaded time.Time `meddler:"uploaded,utctimez"`
 }
 
+// UploadHandler handles the file upload.
 type UploadHandler struct {
 	SessionStore sessions.Store
 	DBStore      *Store
@@ -82,6 +84,7 @@ func (h *UploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]string{"id": id})
 }
 
+// DeleteUploadHandler handles deleting of uploaded files.
 type DeleteUploadHandler struct {
 	SessionStore sessions.Store
 	DBStore      *Store
@@ -130,6 +133,7 @@ func (h *DeleteUploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// RenameUploadHandler handles changing file upload titles.
 type RenameUploadHandler struct {
 	SessionStore sessions.Store
 	DBStore      *Store
@@ -173,6 +177,7 @@ func (h *RenameUploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// GetUploadsHandler returns a list of uploads for the current user.
 type GetUploadsHandler struct {
 	SessionStore sessions.Store
 	DBStore      *Store

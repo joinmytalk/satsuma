@@ -10,6 +10,9 @@ import (
 	"time"
 )
 
+// WebsocketHandler handles an incoming WebSocket and dispatches to the correct
+// handler based on whether the user is authenticated and whether the session
+// he's viewing belongs to him.
 func WebsocketHandler(s *websocket.Conn, dbStore *Store, sessionStore sessions.Store, redisAddr string) {
 	StatCount("websocket", 1)
 	xlog.Infof("WebsocketHandler: opened connection")
@@ -48,6 +51,7 @@ func WebsocketHandler(s *websocket.Conn, dbStore *Store, sessionStore sessions.S
 	}
 }
 
+// Command describes a command as sent over WebSockets and as stored in the database.
 type Command struct {
 	ID           int       `meddler:"id,pk" json:"-"`
 	Timestamp    time.Time `meddler:"timestamp,utctimez" json:"timestamp"`
