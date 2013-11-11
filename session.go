@@ -12,7 +12,7 @@ import (
 type Session struct {
 	ID       int       `meddler:"id,pk" json:"-"`
 	UploadID int       `meddler:"upload_id" json:"-"`
-	PublicID string    `meddler:"public_id" json:"_id"`
+	PublicID string    `meddler:"public_id" json:"id"`
 	Started  time.Time `meddler:"started,utctimez" json:"started"`
 	Ended    time.Time `meddler:"ended,utctimez" json:"ended,omitempty"`
 }
@@ -78,7 +78,7 @@ func (h *StartSessionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 
 // SessionData is used by Store.GetSessions
 type SessionData struct {
-	PublicID  string    `meddler:"public_id" json:"_id"`
+	PublicID  string    `meddler:"public_id" json:"id"`
 	Title     string    `meddler:"title" json:"title"`
 	Started   time.Time `meddler:"started,utctimez" json:"started"`
 	Ended     time.Time `meddler:"ended,utctimez" json:"-"`

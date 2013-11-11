@@ -1,7 +1,7 @@
-var satsumaApp = angular.module('satsuma', [ 'ngUpload' ]);
+var satsumaApp = angular.module('satsuma', [ 'ngRoute', 'ngUpload' ]);
 
 satsumaApp.config(['$routeProvider', '$locationProvider', '$logProvider', function($routeProvider, $locationProvider, $logProvider) {
-		//$logProvider.debugEnabled(true);
+		$logProvider.debugEnabled(true);
 
 		$locationProvider.html5Mode(true);
 
@@ -556,7 +556,7 @@ satsumaApp.controller('MainCtrl', ['$scope', '$http', '$rootScope', '$log', func
 	};
 
 	$scope.saveUploadRename = function(idx) {
-		$http.post('/api/renameupload', { "upload_id": $scope.uploads[idx]._id, "new_title": $scope.uploads[idx].title }).
+		$http.post('/api/renameupload', { "upload_id": $scope.uploads[idx].id, "new_title": $scope.uploads[idx].title }).
 		success(function(data, status, headers, config) {
 			$scope.getSessions();
 			$scope.uploads[idx].renaming = false;

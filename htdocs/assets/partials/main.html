@@ -62,7 +62,7 @@
 		<tr><th>Title</th><th>Link</th><th>Actions</th></tr>
 		<tr ng-repeat="upload in uploads">
 			<td>
-				<a ng-href="/v/{{upload._id}}" ng-hide="upload.renaming">{{upload.title}}</a>
+				<a ng-href="/v/{{upload.id}}" ng-hide="upload.renaming">{{upload.title}}</a>
 				<span ng-show="upload.renaming">
 					<input type="text" ng-model="upload.title">
 					<button class="btn btn-primary" ng-click="saveUploadRename($index)">Save</button>
@@ -70,7 +70,7 @@
 				</span>
 			</td>
 			<td>
-				<a ng-href="/userdata/{{upload._id}}.pdf" target="_blank">
+				<a ng-href="/userdata/{{upload.id}}.pdf" target="_blank">
 					<i class="icon-download-alt"></i>
 					Download
 				</a>
@@ -80,11 +80,11 @@
 					<i class="icon-edit"></i>
 					Rename
 				</button>
-				<button class="btn" ng-click="startSession(upload._id)">
+				<button class="btn" ng-click="startSession(upload.id)">
 					<i class="icon-play"></i>
 					Start Session
 				</button>
-				<button class="btn" ng-click="deleteUpload(upload._id)">
+				<button class="btn" ng-click="deleteUpload(upload.id)">
 					<i class="icon-trash"></i>
 					Delete Presentation
 				</button>
@@ -99,15 +99,15 @@
 	<table class="table" ng-show="sessions.length > 0">
 		<tr><th>Title</th><th>Started</th><th>Ended</th><th>Actions</th></tr>
 		<tr ng-repeat="session in sessions">
-			<td><a ng-href="/s/{{session._id}}">{{session.title}}</a></td>
+			<td><a ng-href="/s/{{session.id}}">{{session.title}}</a></td>
 			<td>{{session.started}}</td>
 			<td>{{session.ended}}</td>
 			<td class="text-right">
-				<button class="btn" ng-click="stopSession(session._id)" ng-show="!session.ended">
+				<button class="btn" ng-click="stopSession(session.id)" ng-show="!session.ended">
 					<i class="icon-stop"></i>
 					Stop Session
 				</button>
-				<button class="btn" ng-click="deleteSession(session._id)" ng-show="session.ended">
+				<button class="btn" ng-click="deleteSession(session.id)" ng-show="session.ended">
 					<i class="icon-trash"></i>
 					Delete Session
 				</button>
