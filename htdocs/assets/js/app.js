@@ -1,7 +1,7 @@
 var satsumaApp = angular.module('satsuma', [ 'ngUpload' ]);
 
 satsumaApp.config(['$routeProvider', '$locationProvider', '$logProvider', function($routeProvider, $locationProvider, $logProvider) {
-		$logProvider.debugEnabled(true);
+		//$logProvider.debugEnabled(true);
 
 		$locationProvider.html5Mode(true);
 
