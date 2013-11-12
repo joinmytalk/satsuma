@@ -100,8 +100,8 @@
 		<tr><th>Title</th><th>Started</th><th>Ended</th><th>Actions</th></tr>
 		<tr ng-repeat="session in sessions">
 			<td><a ng-href="/s/{{session.id}}">{{session.title}}</a></td>
-			<td>{{session.started}}</td>
-			<td>{{session.ended}}</td>
+			<td><span title="{{session.started}}">{{session.started_relative}}</span></td>
+			<td><span title="{{session.ended}}">{{session.ended_relative}}</span></td>
 			<td class="text-right">
 				<button class="btn" ng-click="stopSession(session.id)" ng-show="!session.ended">
 					<i class="icon-stop"></i>

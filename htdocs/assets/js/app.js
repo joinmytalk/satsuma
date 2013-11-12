@@ -573,6 +573,13 @@ satsumaApp.controller('MainCtrl', ['$scope', '$http', '$rootScope', '$log', func
 		success(function(data, status, headers, config) {
 			$scope.sessions = data;
 			$scope.loading_sessions = false;
+			for (var i=0;i<$scope.sessions.length;i++) {
+				var session = $scope.sessions[i];
+				session.started_relative = moment(session.started).fromNow();
+				if (session.ended && session.ended !== "") {
+					session.ended_relative = moment(session.ended).fromNow();
+				}
+			}
 		}).
 		error(function() {
 			$scope.loading_sessions = false;
