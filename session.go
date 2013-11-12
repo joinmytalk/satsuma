@@ -65,7 +65,7 @@ func (h *StartSessionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 	if err := h.DBStore.InsertSession(&Session{
 		UploadID: uploadEntry.ID,
 		PublicID: id,
-		Started:  time.Now(),
+		Started:  time.Now().UTC(),
 	}); err != nil {
 		xlog.Errorf("Insert failed: %v", err)
 		http.Error(w, "insert failed", http.StatusInternalServerError)

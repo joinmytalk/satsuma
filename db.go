@@ -148,7 +148,7 @@ func (s *Store) GetOwnerForSession(publicID string) (userID int, sessionID int, 
 
 // StopSession stops a session, identified by its publicID.
 func (s *Store) StopSession(publicID string) {
-	s.sqlDB.Exec("UPDATE sessions SET ended = NOW() WHERE public_id = ?", publicID)
+	s.sqlDB.Exec("UPDATE sessions SET ended = UTC_TIMESTAMP() WHERE public_id = ?", publicID)
 }
 
 // DeleteSession deletes a session, identified by its publicID.
