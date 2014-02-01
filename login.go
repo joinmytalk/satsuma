@@ -1,198 +1,163 @@
 package main
 
 import (
-	"crypto/rand"
-	"encoding/base64"
 	"encoding/json"
-	"fmt"
+	"github.com/bradrydzewski/go.auth"
+	"github.com/gorilla/securecookie"
+	"github.com/gorilla/sessions"
 	"github.com/joinmytalk/xlog"
-	"io/ioutil"
 	"net/http"
-	"net/url"
-	"strings"
 )
 
-func Connect(w http.ResponseWriter, r *http.Request) {
-	// Ensure that the request is not a forgery and that the user sending this
-	// connect request is the expected user
-	session, err := store.Get(r, SESSION_NAME)
+func Connect(w http.ResponseWriter, r *http.Request, u auth.User, sessionStore sessions.Store, secureCookie *securecookie.SecureCookie, dbStore *Store) {
+	StatCount("connect call", 1)
+	session, err := sessionStore.Get(r, SESSIONNAME)
+	if err != nil {
+		xlog.Errorf("Error fetching session: %v", err)
+		session, _ = sessionStore.New(r, SESSIONNAME)
+	}
+
+	if userID, ok := session.Values["userID"].(int); ok {
+		xlog.Debugf("Connect: already logged in (userID = %d), connecting account", userID)
+		// we have a valid session -> connect account to user
+		username := u.Provider() + ":" + u.Id()
+
+		err := dbStore.AddUser(username, userID)
+		if err != nil {
+			xlog.Errorf("Error adding user: %v", err)
+			http.Error(w, err.Error(), http.StatusForbidden)
+			return
+		}
+
+		w.Header().Set("Location", "/settings")
+	} else {
+		xlog.Debugf("Connect: not logged in, actually log in user.")
+		// no valid session -> actually login user
+		username := u.Provider() + ":" + u.Id()
+		xlog.Debugf("Connect: username = %s", username)
+		userID, err := dbStore.CreateUser(username)
+		if err != nil {
+			xlog.Errorf("Error creating user: %v", err)
+			http.Error(w, err.Error(), http.StatusForbidden)
+			return
+		}
+
+		xlog.Debugf("Connect: userID = %d", userID)
+
+		// set session values
+		session.Values["userID"] = userID
+		session.Values["username"] = username
+		session.Values["email"] = u.Email()
+		session.Values["name"] = u.Name()
+		session.Save(r, w)
+
+		// set XSRF-TOKEN for AngularJS
+		xsrftoken, _ := secureCookie.Encode(XSRFTOKEN, username)
+		http.SetCookie(w, &http.Cookie{Name: XSRFTOKEN, Value: xsrftoken, Path: "/"})
+
+		w.Header().Set("Location", "/")
+	}
+	w.WriteHeader(http.StatusFound)
+}
+
+func VerifyXSRFToken(w http.ResponseWriter, r *http.Request, sessionStore sessions.Store, secureCookie *securecookie.SecureCookie) bool {
+	xsrftoken := r.Header.Get(XSRFTOKENHEADER)
+	userID := ""
+
+	err := secureCookie.Decode(XSRFTOKEN, xsrftoken, &userID)
+	if err == nil {
+		session, _ := sessionStore.Get(r, SESSIONNAME)
+
+		if userID != "" && userID == session.Values["username"].(string) {
+			xlog.Infof("XSRF verification success for user %s", session.Values["username"].(string))
+			return true
+		}
+		xlog.Errorf("XSRF issue: userID = %s session = %s", userID, session.Values["username"].(string))
+	}
+
+	xlog.Errorf("XSRF verification failed: %v (Request: %#v", err, *r)
+	http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
+	StatCount("XSRF verification failed", 1)
+	return false
+}
+
+type DisconnectHandler struct {
+	SessionStore sessions.Store
+	SecureCookie *securecookie.SecureCookie
+}
+
+func (h *DisconnectHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	StatCount("disconnect call", 1)
+	if !VerifyXSRFToken(w, r, h.SessionStore, h.SecureCookie) {
+		return
+	}
+
+	// Only disconnect a connected user
+	session, err := h.SessionStore.Get(r, SESSIONNAME)
 	if err != nil {
 		xlog.Errorf("Error fetching session: %v", err)
 		http.Error(w, "Error fetching session", 500)
 		return
 	}
-	/*
-		if r.FormValue("state") != session.Values["state"].(string) {
-			http.Error(w, "Invalid state parameter", 401)
-			return
-		}
-	*/
-
-	// Normally, the state is a one-time token; however, in this example, we want
-	// the user to be able to connect and disconnect without reloading the page.
-	// Thus, for demonstration, we don't implement this best practice.
-	// session.Values["state"] = nil
-
-	// Setup for fetching the code from the request payload
-	x, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		http.Error(w, "Error reading code in request body", 500)
-		return
-	}
-	code := string(x)
-
-	accessToken, idToken, err := exchange(code)
-	if err != nil {
-		http.Error(w, "Error exchanging code for access token", 500)
-		return
-	}
-	gplusID, err := decodeIdToken(idToken)
-
-	if err != nil {
-		http.Error(w, "Error decoding ID token", 500)
-		return
-	}
-
-	/*
-		// Check if the user is already connected
-		storedToken := session.Values["accessToken"]
-		storedGPlusID := session.Values["gplusID"]
-		if storedToken != nil && storedGPlusID == gplusID {
-			http.Error(w, "Current user already connected", 200)
-			return
-		}
-	*/
-
-	xlog.Debugf("Connect: gplusID = %s", gplusID)
-	xlog.Debugf("Connect: accessToken = %s", accessToken)
-
-	// Store the access token in the session for later use
-	session.Values["accessToken"] = accessToken
-	session.Values["gplusID"] = gplusID
-	session.Save(r, w)
-}
-
-// randomString returns a random string with the specified length
-func randomString(length int) (str string) {
-	b := make([]byte, length)
-	rand.Read(b)
-	return base64.StdEncoding.EncodeToString(b)
-}
-
-func exchange(code string) (accessToken string, idToken string, err error) {
-	// Exchange the authorization code for a credentials object via a POST request
-	addr := "https://accounts.google.com/o/oauth2/token"
-	values := url.Values{
-		"Content-Type":  {"application/x-www-form-urlencoded"},
-		"code":          {code},
-		"client_id":     {options.ClientID},
-		"client_secret": {options.ClientSecret},
-		"redirect_uri":  {"postmessage"},
-		"grant_type":    {"authorization_code"},
-	}
-	resp, err := http.PostForm(addr, values)
-	if err != nil {
-		return "", "", fmt.Errorf("Exchanging code: %v", err)
-	}
-	defer resp.Body.Close()
-
-	// Decode the response body into a token object
-	var token Token
-	err = json.NewDecoder(resp.Body).Decode(&token)
-	if err != nil {
-		return "", "", fmt.Errorf("Decoding access token: %v", err)
-	}
-
-	return token.AccessToken, token.IdToken, nil
-}
-
-// decodeIdToken takes an ID Token and decodes it to fetch the Google+ ID within
-func decodeIdToken(idToken string) (gplusID string, err error) {
-	// An ID token is a cryptographically-signed JSON object encoded in base 64.
-	// Normally, it is critical that you validate an ID token before you use it,
-	// but since you are communicating directly with Google over an
-	// intermediary-free HTTPS channel and using your Client Secret to
-	// authenticate yourself to Google, you can be confident that the token you
-	// receive really comes from Google and is valid. If your server passes the ID
-	// token to other components of your app, it is extremely important that the
-	// other components validate the token before using it.
-	var set ClaimSet
-	if idToken != "" {
-		// Check that the padding is correct for a base64decode
-		parts := strings.Split(idToken, ".")
-		if len(parts) < 2 {
-			return "", fmt.Errorf("Malformed ID token")
-		}
-		// Decode the ID token
-		b, err := base64Decode(parts[1])
-		if err != nil {
-			return "", fmt.Errorf("Malformed ID token: %v", err)
-		}
-		err = json.Unmarshal(b, &set)
-		if err != nil {
-			return "", fmt.Errorf("Malformed ID token: %v", err)
-		}
-	}
-	return set.Sub, nil
-}
-
-func base64Decode(s string) ([]byte, error) {
-	// add back missing padding
-	switch len(s) % 4 {
-	case 2:
-		s += "=="
-	case 3:
-		s += "="
-	}
-	return base64.URLEncoding.DecodeString(s)
-}
-
-func Disconnect(w http.ResponseWriter, r *http.Request) {
-	// Only disconnect a connected user
-	session, err := store.Get(r, SESSION_NAME)
-	if err != nil {
-		xlog.Error("Error fetching session: %v", err)
-		http.Error(w, "Error fetching session", 500)
-		return
-	}
-	token := session.Values["accessToken"]
+	token := session.Values["username"]
 	if token == nil {
 		http.Error(w, "Current user not connected", 401)
 		return
 	}
 
-	// Execute HTTP GET request to revoke current token
-	url := "https://accounts.google.com/o/oauth2/revoke?token=" + token.(string)
-	resp, err := http.Get(url)
-	if err != nil {
-		http.Error(w, "Failed to revoke token for a given user", 400)
-		return
-	}
-	defer resp.Body.Close()
-
 	// Reset the user's session
-	session.Values["accessToken"] = nil
+	session.Values["userID"] = nil
+	session.Values["username"] = nil
+	session.Values["name"] = nil
+	session.Values["email"] = nil
 	session.Save(r, w)
+	w.WriteHeader(http.StatusNoContent)
 }
 
-func LoggedIn(w http.ResponseWriter, r *http.Request) {
+type LoggedInHandler struct {
+	SessionStore sessions.Store
+}
+
+func (h *LoggedInHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	StatCount("loggedin call", 1)
 	jsonEncoder := json.NewEncoder(w)
-	session, err := store.Get(r, SESSION_NAME)
+	session, err := h.SessionStore.Get(r, SESSIONNAME)
 	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		jsonEncoder.Encode(map[string]bool{"logged_in": false})
-		xlog.Error("Error fetching session: %v", err)
+		xlog.Errorf("Error fetching session: %v", err)
 		return
 	}
 
-	loggedIn := false
-	token := session.Values["accessToken"]
-	if token == nil {
-		loggedIn = false
-	} else {
-		loggedIn = true
-	}
+	loggedIn := (session.Values["username"] != nil)
 
 	w.Header().Set("Content-Type", "application/json")
 	jsonEncoder.Encode(map[string]bool{"logged_in": loggedIn})
+}
+
+type ConnectedHandler struct {
+	SessionStore sessions.Store
+	DBStore      *Store
+}
+
+func (h *ConnectedHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	session, err := h.SessionStore.Get(r, SESSIONNAME)
+	if err != nil {
+		xlog.Errorf("Error fetching session: %v", err)
+		http.Error(w, err.Error(), http.StatusForbidden)
+		return
+	}
+
+	userID := session.Values["userID"].(int)
+
+	systems := h.DBStore.GetConnectedSystemsForUser(userID)
+
+	jsonData := make(map[string]bool)
+
+	for _, s := range systems {
+		jsonData[s] = true
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(jsonData)
 }

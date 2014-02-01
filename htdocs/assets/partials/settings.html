@@ -1,0 +1,21 @@
+<h2>Settings</h2>
+<h3>Accounts</h3>
+<p class="alert alert-info">
+Here you can connect additional accounts to your current account. This is 
+useful if you want to use different accounts to sign in or when you previously 
+logged in with another account and want to merge both accounts.
+</p>
+<p>
+	<span ng-show="connected.gplus">Your account is connected to Google+.</span>
+	<a class="btn" href="/auth/gplus" target="_self" ng-hide="connected.gplus">
+		<i class="icon-google-plus-sign"></i>
+		Connect to Google+
+	</a>
+</p>
+<p>
+	<span ng-show="connected.twitter">Your account is connected to Twitter.</span>
+	<a class="btn" ng-href="/auth/twitter" target="_self" ng-hide="connected.twitter">
+		<i class="icon-twitter-sign"></i>
+		Connect to Twitter
+	</a>
+</p>
