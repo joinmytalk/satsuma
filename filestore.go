@@ -67,7 +67,9 @@ func (store *FileUploadStore) Store(id string, uploadedFile io.Reader, origFileN
 
 // Remove removes an uploaded file from the file store.
 func (store *FileUploadStore) Remove(uploadID string) {
-	os.Remove(path.Join(store.UploadDir, uploadID+".pdf"))
+	filePath := path.Join(store.UploadDir, uploadID+".pdf")
+	xlog.Debugf("FileUploadStore: remove %s", filePath)
+	os.Remove(filePath)
 }
 
 // ConvertFileToPDF attempts to convert a file to PDF.
