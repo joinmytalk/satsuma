@@ -2,12 +2,12 @@ package main
 
 import (
 	"bytes"
-	"errors"
+	"encoding/json"
+	"github.com/bitly/go-nsq"
 	"github.com/joinmytalk/xlog"
 	"io"
 	"net/http"
 	"os"
-	"os/exec"
 	"path"
 )
 
@@ -15,6 +15,8 @@ import (
 type FileUploadStore struct {
 	UploadDir string
 	TmpDir    string
+	NSQ       *nsq.Writer
+	Topic     string
 }
 
 // ServeHTTP serves HTTP request from the FileUploadStore.
@@ -51,7 +53,7 @@ func (store *FileUploadStore) Store(id string, uploadedFile io.Reader, origFileN
 		xlog.Debugf("%s is a PDF file, renaming to %s", tmpFile, filename)
 		os.Rename(tmpFile, filename)
 	} else {
-		if err = ConvertFileToPDF(tmpFile, filename); err != nil {
+		if err = store.ConvertFileToPDF(tmpFile, filename); err != nil {
 			xlog.Errorf("conversion to PDF of %s failed: %v", tmpFile, err)
 			os.Remove(tmpFile)
 			os.Remove(filename)
@@ -69,34 +71,11 @@ func (store *FileUploadStore) Remove(uploadID string) {
 }
 
 // ConvertFileToPDF attempts to convert a file to PDF.
-func ConvertFileToPDF(src, target string) error {
-	StatCount("file conversion to PDF", 1)
-	cmd := exec.Command("unoconv", "-f", "pdf", "--stdout", src)
-	// cmd := exec.Command("cat", src)
-	f, err := os.OpenFile(target, os.O_WRONLY|os.O_CREATE, 0644)
-	if err != nil {
+func (store *FileUploadStore) ConvertFileToPDF(src, target string) error {
+	msg, _ := json.Marshal(map[string]string{"src_file": src, "target_file": target})
+	if _, _, err := store.NSQ.Publish(store.Topic, msg); err != nil {
+		xlog.Errorf("Queuing message to NSQ %s failed: %v", store.NSQ.Addr, err)
 		return err
 	}
-
-	defer f.Close()
-	stdout, _ := cmd.StdoutPipe()
-	err = cmd.Start()
-	if err != nil {
-		xlog.Errorf("running unoconv failed: %v", err)
-		return err
-	}
-	io.Copy(f, stdout)
-	err = cmd.Wait()
-	if err != nil {
-		xlog.Errorf("cmd.Wait returned error: %v", err)
-		return err
-	}
-	fi, _ := f.Stat()
-	if fi.Size() == 0 {
-		os.Remove(target)
-		xlog.Error("file resulting from conversion is empty")
-		return errors.New("empty file")
-	}
-
 	return nil
 }
