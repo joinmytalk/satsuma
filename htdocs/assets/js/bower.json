@@ -16,10 +16,13 @@
     "tests"
   ],
   "dependencies": {
-    "angular": "~1.2.0",
-    "jquery": "1.10.2",
+    "angular": "~1.2.10",
+    "jquery": "1.11.0",
     "underscore": "~1.5.2",
     "angular-route": "~1.2.0",
     "momentjs": "~2.4.0"
+  },
+  "resolutions": {
+    "angular": "~1.2.10"
   }
 }
