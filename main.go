@@ -3,6 +3,7 @@ package main
 import (
 	"code.google.com/p/go.net/websocket"
 	"database/sql"
+	"github.com/bitly/go-nsq"
 	"github.com/bmizerany/pat"
 	"github.com/bradrydzewski/go.auth"
 	_ "github.com/go-sql-driver/mysql"
@@ -42,6 +43,8 @@ func main() {
 		RedisAddr           string `goptions:"--redis, description='redis address', obligatory"`
 		AccessLog           bool   `goptions:"--accesslog, description='log HTTP requests'"`
 		StatHat             string `goptions:"--stathat, description='Enable StatHat tracking and set user key'"`
+		Topic               string `goptions:"--topic, description='Topic to which uploads shall be published for conversions'"`
+		NSQAddr             string `goptions:"--nsqd, description='address:port of nsqd to publish messages to'"`
 	}{
 		Addr:      "[::]:8080",
 		RedisAddr: ":6379",
@@ -70,7 +73,7 @@ func main() {
 		dbStore = NewStore(sqldb)
 	}
 
-	fileStore := &FileUploadStore{UploadDir: options.UploadDir, TmpDir: options.TmpDir}
+	fileStore := &FileUploadStore{UploadDir: options.UploadDir, TmpDir: options.TmpDir, Topic: options.Topic, NSQ: nsq.NewWriter(options.NSQAddr)}
 
 	xlog.Debugf("Creating upload directory %s...", options.UploadDir)
 	os.Mkdir(options.UploadDir, 0755)
@@ -95,7 +98,7 @@ func main() {
 	apiRouter.Post("/api/upload", &UploadHandler{SessionStore: sessionStore, DBStore: dbStore, UploadStore: fileStore, SecureCookie: secureCookie})
 	apiRouter.Get("/api/getuploads", &GetUploadsHandler{SessionStore: sessionStore, DBStore: dbStore})
 	apiRouter.Post("/api/renameupload", &RenameUploadHandler{SessionStore: sessionStore, DBStore: dbStore, SecureCookie: secureCookie})
-	apiRouter.Post("/api/delupload", &DeleteUploadHandler{SessionStore: sessionStore, DBStore: dbStore, SecureCookie: secureCookie})
+	apiRouter.Post("/api/delupload", &DeleteUploadHandler{SessionStore: sessionStore, DBStore: dbStore, SecureCookie: secureCookie, UploadStore: fileStore})
 	apiRouter.Post("/api/startsession", &StartSessionHandler{SessionStore: sessionStore, DBStore: dbStore, SecureCookie: secureCookie})
 	apiRouter.Post("/api/stopsession", &StopSessionHandler{SessionStore: sessionStore, DBStore: dbStore, SecureCookie: secureCookie})
 	apiRouter.Post("/api/delsession", &DeleteSessionHandler{SessionStore: sessionStore, DBStore: dbStore, SecureCookie: secureCookie})
