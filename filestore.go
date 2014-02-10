@@ -59,7 +59,6 @@ func (store *FileUploadStore) Store(id string, uploadedFile io.Reader, origFileN
 			os.Remove(filename)
 			return err
 		}
-		os.Remove(tmpFile)
 	}
 
 	return nil
