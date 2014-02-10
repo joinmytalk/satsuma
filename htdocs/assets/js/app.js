@@ -78,7 +78,7 @@ satsumaApp.controller('PDFViewCtrl', [ '$scope', '$routeParams', '$http', '$loca
 			canvas.height = viewport.height;
 			canvas.width = viewport.width;
 
-			page.render({ canvasContext: ctx, viewport: viewport }).then(
+			page.render({ canvasContext: ctx, viewport: viewport }).promise.then(
 				function() {
 					for (var i=0;i<$scope.cmds.length;i++) {
 						var cmd = $scope.cmds[i];
