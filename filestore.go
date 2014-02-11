@@ -26,13 +26,13 @@ func (store *FileUploadStore) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 
 // Store stores a new file with a specified id in the filesystem. If the
 // file isn't a PDF file, it also attempts a conversion to a PDF file.
-func (store *FileUploadStore) Store(id string, uploadedFile io.Reader, origFileName string) error {
+func (store *FileUploadStore) Store(id string, uploadedFile io.Reader, origFileName string) (isPDF bool, err error) {
 	filename := path.Join(store.UploadDir, id+".pdf")
 
 	tmpFile := path.Join(store.TmpDir, id+"_"+origFileName)
 	tmpf, err := os.OpenFile(tmpFile, os.O_WRONLY|os.O_CREATE, 0644)
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	io.Copy(tmpf, uploadedFile)
@@ -40,28 +40,28 @@ func (store *FileUploadStore) Store(id string, uploadedFile io.Reader, origFileN
 
 	f, err := os.Open(tmpFile)
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	defer f.Close()
 	buf := make([]byte, 4)
 	if _, err = f.Read(buf); err != nil {
-		return err
+		return false, err
 	}
 
 	if bytes.Equal(buf, []byte("%PDF")) {
 		xlog.Debugf("%s is a PDF file, renaming to %s", tmpFile, filename)
 		os.Rename(tmpFile, filename)
+		return true, nil
 	} else {
-		if err = store.ConvertFileToPDF(tmpFile, filename); err != nil {
+		if err = store.ConvertFileToPDF(id, tmpFile, filename); err != nil {
 			xlog.Errorf("conversion to PDF of %s failed: %v", tmpFile, err)
 			os.Remove(tmpFile)
 			os.Remove(filename)
-			return err
+			return false, err
 		}
+		return false, nil
 	}
-
-	return nil
 }
 
 // Remove removes an uploaded file from the file store.
@@ -72,8 +72,8 @@ func (store *FileUploadStore) Remove(uploadID string) {
 }
 
 // ConvertFileToPDF attempts to convert a file to PDF.
-func (store *FileUploadStore) ConvertFileToPDF(src, target string) error {
-	msg, _ := json.Marshal(map[string]string{"src_file": src, "target_file": target})
+func (store *FileUploadStore) ConvertFileToPDF(id, src, target string) error {
+	msg, _ := json.Marshal(map[string]string{"src_file": src, "target_file": target, "upload_id": id})
 	if _, _, err := store.NSQ.Publish(store.Topic, msg); err != nil {
 		xlog.Errorf("Queuing message to NSQ %s failed: %v", store.NSQ.Addr, err)
 		return err

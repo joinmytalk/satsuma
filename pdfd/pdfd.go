@@ -1,9 +1,11 @@
 package main
 
 import (
+	"database/sql"
 	"errors"
 	"github.com/bitly/go-nsq"
 	"github.com/bitly/go-simplejson"
+	_ "github.com/go-sql-driver/mysql"
 	"github.com/joinmytalk/xlog"
 	"github.com/voxelbrain/goptions"
 	"io"
@@ -13,19 +15,25 @@ import (
 
 func main() {
 	options := struct {
-		Topic   string `goptions:"--topic, description='Topic'"`
-		Channel string `goptions:"--channel, description='Channel'"`
-		Lookupd string `goptions:"--lookupd, description='lookupd address'"`
+		Topic   string `goptions:"--topic, description='Topic', obligatory"`
+		Channel string `goptions:"--channel, description='Channel', obligatory"`
+		Lookupd string `goptions:"--lookupd, description='lookupd address', obligatory"`
+		DSN     string `goptions:"--dsn, description='MySQL DSN string', obligatory"`
 	}{}
 
 	goptions.ParseAndFail(&options)
+
+	sqldb, err := sql.Open("mysql", options.DSN)
+	if err != nil {
+		xlog.Fatalf("sql.Open failed: %v", err)
+	}
 
 	r, err := nsq.NewReader(options.Topic, options.Channel)
 	if err != nil {
 		xlog.Fatalf("Opening reader for %s/%s failed: %v", options.Topic, options.Channel, err)
 	}
 
-	r.AddHandler(&Converter{})
+	r.AddHandler(&Converter{DB: sqldb})
 
 	if err := r.ConnectToLookupd(options.Lookupd); err != nil {
 		xlog.Errorf("Connecting to %s failed: %v", options.Lookupd, err)
@@ -35,6 +43,7 @@ func main() {
 }
 
 type Converter struct {
+	DB *sql.DB
 }
 
 func (c *Converter) HandleMessage(message *nsq.Message) error {
@@ -48,6 +57,7 @@ func (c *Converter) HandleMessage(message *nsq.Message) error {
 
 	srcFile := msg.Get("src_file").MustString()
 	targetFile := msg.Get("target_file").MustString()
+	publicId := msg.Get("upload_id").MustString()
 
 	if _, err := os.Stat(targetFile); err == nil {
 		xlog.Debugf("target file %s already exists.", targetFile)
@@ -56,10 +66,20 @@ func (c *Converter) HandleMessage(message *nsq.Message) error {
 
 	if err := ConvertFileToPDF(srcFile, targetFile); err != nil {
 		xlog.Errorf("Converting %s to %s failed: %v", srcFile, targetFile, err)
+		_, err = c.DB.Exec("UPDATE uploads SET conversion = 'error' WHERE public_id = ?", publicId)
+		if err != nil {
+			xlog.Errorf("Updating conversion status for %s failed: %v", publicId, err)
+		}
 		os.Remove(srcFile)
 		os.Remove(targetFile)
 		return nil
+	} else {
+		_, err = c.DB.Exec("UPDATE uploads SET conversion = 'success' WHERE public_id = ?", publicId)
+		if err != nil {
+			xlog.Errorf("Updating conversion status for %s failed: %v", publicId, err)
+		}
 	}
+	xlog.Debugf("Conversion of upload %s finished.", publicId)
 
 	return nil
 }

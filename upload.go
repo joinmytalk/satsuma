@@ -12,11 +12,12 @@ import (
 
 // Upload describes an uploaded presentation.
 type Upload struct {
-	ID       int       `meddler:"id,pk" json:"-"`
-	Title    string    `meddler:"title" json:"title"`
-	PublicID string    `meddler:"public_id" json:"id"`
-	UserID   int       `meddler:"user_id" json:"-"`
-	Uploaded time.Time `meddler:"uploaded,utctimez"`
+	ID         int       `meddler:"id,pk" json:"-"`
+	Title      string    `meddler:"title" json:"title"`
+	PublicID   string    `meddler:"public_id" json:"id"`
+	UserID     int       `meddler:"user_id" json:"-"`
+	Uploaded   time.Time `meddler:"uploaded,utctimez"`
+	Conversion string    `meddler:"conversion" json:"conversion"`
 }
 
 // UploadHandler handles the file upload.
@@ -63,17 +64,21 @@ func (h *UploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	id := generateID()
 
-	if err := h.UploadStore.Store(id, file, fhdr.Filename); err != nil {
+	conversion := "success"
+
+	if isPDF, err := h.UploadStore.Store(id, file, fhdr.Filename); err != nil {
 		xlog.Errorf("Storing file for upload %s failed: %v", id, err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+	} else if !isPDF {
+		conversion = "progress"
 	}
 
 	if err := h.DBStore.InsertUpload(&Upload{
-		PublicID: id,
-		UserID:   session.Values["userID"].(int),
-		Title:    title,
-		Uploaded: time.Now(),
+		PublicID:   id,
+		UserID:     session.Values["userID"].(int),
+		Title:      title,
+		Uploaded:   time.Now(),
+		Conversion: conversion,
 	}); err != nil {
 		xlog.Errorf("Insert failed: %v", err)
 		http.Error(w, "insert failed", http.StatusInternalServerError)

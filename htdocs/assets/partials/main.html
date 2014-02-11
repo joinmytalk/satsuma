@@ -62,7 +62,8 @@
 		<tr><th>Title</th><th>Link</th><th>Actions</th></tr>
 		<tr ng-repeat="upload in uploads">
 			<td>
-				<a ng-href="/v/{{upload.id}}" ng-hide="upload.renaming">{{upload.title}}</a>
+				<a ng-href="/v/{{upload.id}}" ng-show="!upload.renaming && upload.conversion == 'success'">{{upload.title}}</a>
+				<span ng-show="upload.conversion != 'success'">{{upload.title}}</span>
 				<span ng-show="upload.renaming">
 					<input type="text" ng-model="upload.title">
 					<button class="btn btn-primary" ng-click="saveUploadRename($index)">Save</button>
@@ -70,21 +71,40 @@
 				</span>
 			</td>
 			<td>
-				<a ng-href="/userdata/{{upload.id}}.pdf" target="_blank">
+				<a ng-show="upload.conversion == 'success'" ng-href="/userdata/{{upload.id}}.pdf" target="_blank">
 					<i class="icon-download-alt"></i>
 					Download
 				</a>
+				<span ng-show="upload.conversion == 'progress'">
+					<!-- TODO: some animation? -->
+					Processing upload...
+				</span>
+				<span ng-show="upload.conversion == 'error'">
+					<!-- TODO: maybe red and scary? -->
+					Error
+				</span>
 			</td>
 			<td class="text-right">
-				<button class="btn" ng-click="renameUpload($index)">
+				<span ng-show="upload.conversion == 'progress'">
+					We are currently processing and converting your upload.
+					<button class="btn" ng-click="getUploads()">
+						<i class="icon-refresh"></i>
+						Reload
+					</button>
+				</span>
+				<span ng-show="upload.conversion == 'error'">
+					Unfortunately, we encountered an error while processing your upload. Please make sure to only upload supported file types (PDF, PowerPoint, OpenOffice/LibreOffice).
+				</span>
+
+				<button ng-show="upload.conversion == 'success'" class="btn" ng-click="renameUpload($index)">
 					<i class="icon-edit"></i>
 					Rename
 				</button>
-				<button class="btn" ng-click="startSession(upload.id)">
+				<button ng-show="upload.conversion == 'success'" class="btn" ng-click="startSession(upload.id)">
 					<i class="icon-play"></i>
 					Start Session
 				</button>
-				<button class="btn" ng-click="deleteUpload(upload.id)">
+				<button ng-show="upload.conversion != 'progress'" class="btn" ng-click="deleteUpload(upload.id)">
 					<i class="icon-trash"></i>
 					Delete Presentation
 				</button>

@@ -487,7 +487,7 @@ satsumaApp.controller('LoginCtrl', [ '$scope', '$http', '$rootScope', '$location
 	});
 }]);
 
-satsumaApp.controller('MainCtrl', ['$scope', '$http', '$rootScope', '$log', function($scope, $http, $rootScope, $log) {
+satsumaApp.controller('MainCtrl', ['$scope', '$http', '$rootScope', '$log', '$timeout', function($scope, $http, $rootScope, $log, $timeout) {
 	$log.log('MainCtrl: new instance');
 
 	$scope.error = null;
@@ -496,6 +496,7 @@ satsumaApp.controller('MainCtrl', ['$scope', '$http', '$rootScope', '$log', func
 	$scope.saved_titles = [ ];
 	$scope.loading_uploads = false;
 	$scope.loading_sessions = false;
+	$scope.get_upload_retries = 0;
 
 	window.signinCallback = function(authData) {
 		$log.log('signinCallback called');
@@ -527,6 +528,26 @@ satsumaApp.controller('MainCtrl', ['$scope', '$http', '$rootScope', '$log', func
 		$http.get('/api/getuploads').
 		success(function(data, status, headers, config) {
 			$scope.uploads = data;
+			// if we encounter an upload that is currently being processed, then
+			// we attempt to reload the uploads list every 10 seconds, until all
+			// the uploads are processed. We do that a maximum of 100 times or
+			// otherwise failing conversions and open browsers might constantly
+			// request the uploads list every 10 seconds.
+			var progress_count = 0;
+			for (var i=0;i<$scope.uploads.length;i++) {
+				var upload = $scope.uploads[i];
+				if (upload.conversion == 'progress') {
+					progress_count++;
+				}
+			}
+			if (progress_count > 0) {
+				if ($scope.get_upload_retries < 100) {
+					$timeout($scope.getUploads, 10000);
+					$scope.get_upload_retries++;
+				} else {
+					$scope.get_upload_retries = 0;
+				}
+			}
 			$scope.loading_uploads = false;
 		}).
 		error(function() {
@@ -642,6 +663,7 @@ satsumaApp.controller('MainCtrl', ['$scope', '$http', '$rootScope', '$log', func
 		$scope.getUploads();
 		$scope.getSessions();
 	}
+
 }]);
 
 satsumaApp.controller('SettingsCtrl', [ '$scope', '$http', function($scope, $http) {
