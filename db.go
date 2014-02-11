@@ -58,7 +58,7 @@ func (s *Store) DeleteUploadByPublicID(publicID string, userID int) (int64, erro
 // GetUploadsForUser returns a slice of Upload objects for the specified user.
 func (s *Store) GetUploadsForUser(userID int) ([]*Upload, error) {
 	result := []*Upload{}
-	err := meddler.QueryAll(s.sqlDB, &result, "SELECT id, title, public_id, user_id, uploaded FROM uploads WHERE user_id = ?", userID)
+	err := meddler.QueryAll(s.sqlDB, &result, "SELECT id, title, public_id, user_id, uploaded, conversion FROM uploads WHERE user_id = ?", userID)
 	if err != nil {
 		result = nil
 	}
