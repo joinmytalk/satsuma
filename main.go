@@ -6,6 +6,7 @@ import (
 	"github.com/bitly/go-nsq"
 	"github.com/bmizerany/pat"
 	"github.com/bradrydzewski/go.auth"
+	"github.com/fiorix/go-web/autogzip"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/securecookie"
 	"github.com/gorilla/sessions"
@@ -125,7 +126,7 @@ func main() {
 	// deliver static files from htdocs.
 	mux.Handle("/", http.FileServer(http.Dir(options.HtdocsDir)))
 
-	handler := http.Handler(mux)
+	handler := http.Handler(autogzip.Handle(mux))
 	if options.AccessLog {
 		handler = Logger(handler)
 	}
