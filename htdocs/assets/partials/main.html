@@ -58,7 +58,7 @@
 
 	<!-- presentation list -->
 	<h3>Your Presentations</h3>
-	<table class="table" ng-show="uploads.length > 0">
+	<table class="table table-striped table-bordered" ng-show="uploads.length > 0">
 		<tr><th>Title</th><th>Link</th><th>Actions</th></tr>
 		<tr ng-repeat="upload in uploads">
 			<td>
@@ -116,7 +116,7 @@
 
 	<!-- session list -->
 	<h3>Your Sessions</h3>
-	<table class="table" ng-show="sessions.length > 0">
+	<table class="table table-striped table-bordered" ng-show="sessions.length > 0">
 		<tr><th>Title</th><th>Started</th><th>Ended</th><th>Actions</th></tr>
 		<tr ng-repeat="session in sessions">
 			<td><a ng-href="/s/{{session.id}}">{{session.title}}</a></td>
