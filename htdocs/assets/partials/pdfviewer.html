@@ -3,19 +3,19 @@
 		<h1 ng-show="title" class="text-center">{{title}}</h1>
 		<div class="btn-toolbar text-center">
 			<div class="btn-group">
-				<a class="btn" ng-click="exit()" title="Exit presentation"><i class="icon-off"></i>Exit</a>
+				<a class="btn btn-default" ng-click="exit()" title="Exit presentation"><i class="icon-off"></i>Exit</a>
 			</div>
 			<div class="btn-group">
-				<a class="btn" ng-click="zoomIn()" title="Zoom in"><i class="icon-zoom-in"></i></a>
-				<a class="btn" ng-click="zoomOut()" title="Zoom out"><i class="icon-zoom-out"></i></a>
-				<a class="btn" ng-click="gotoFullscreen()" title="Switch to fullscreen mode"><i class="icon-fullscreen"></i>Fullscreen</a>
+				<a class="btn btn-default" ng-click="zoomIn()" title="Zoom in"><i class="icon-zoom-in"></i></a>
+				<a class="btn btn-default" ng-click="zoomOut()" title="Zoom out"><i class="icon-zoom-out"></i></a>
+				<a class="btn btn-default" ng-click="gotoFullscreen()" title="Switch to fullscreen mode"><i class="icon-fullscreen"></i>Fullscreen</a>
 			</div>
 			<div class="btn-group" ng-show="owner || ended || type == 'viewer'">
-				<a class="btn" ng-click="gotoPrev()" title="Previous slide"><i class="icon-backward"></i></a>
-				<a class="btn" ng-click="gotoNext()" title="Next slide"><i class="icon-forward"></i></a>
+				<a class="btn btn-default" ng-click="gotoPrev()" title="Previous slide"><i class="icon-backward"></i></a>
+				<a class="btn btn-default" ng-click="gotoNext()" title="Next slide"><i class="icon-forward"></i></a>
 			</div>
 			<div class="btn-group" ng-show="owner && type == 'session' && !ended">
-				<a class="btn" ng-click="clearSlide()" title="Clear slide">Clear</a>
+				<a class="btn btn-default" ng-click="clearSlide()" title="Clear slide">Clear</a>
 			</div>
 			<div class="btn-group" ng-show="owner && type == 'session' && !ended">
 				<input type="color" ng-model="lineColor" title="Line color" class="vertical-middle">
@@ -26,12 +26,12 @@
 			</div>
 		</div>
 		<div class="row">
-			<div class="span12 progress progress-striped active" ng-show="loadProgress > 0">
+			<div class="col-md-12 progress progress-striped active" ng-show="loadProgress > 0">
 				<div class="bar" style="width: {{loadProgress}}%"></div>
 			</div>
 		</div>
 		<div class="row">
-			<div class="span12">
+			<div class="col-md-12">
 				<div id="canvas_wrapper" class="text-center">
 					<canvas id="slide_canvas" style="border: 1px solid black"></canvas>
 				</div>
