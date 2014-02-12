@@ -34,25 +34,25 @@
 			<p class="chromeframe">You are using an <strong>outdated</strong> browser. Please <a href="http://browsehappy.com/">upgrade your browser</a> or <a href="http://www.google.com/chromeframe/?redirect=true">activate Google Chrome Frame</a> to improve your experience.</p>
 		<![endif]-->
 		<div id="wrap" class="container" ng-show="checkedLoggedIn">
-			<div class="navbar navbar-fixed-top">
-				<div class="container">
-					<div class="navbar-header">
-						<a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
-							<span class="icon-bar"></span>
-							<span class="icon-bar"></span>
-							<span class="icon-bar"></span>
-						</a>
-						<a class="navbar-brand" ng-href="/">Join my Talk!</a>
-					</div>
+			<div class="navbar navbar-inverse navbar-fixed-top">
+				<div class="navbar-header">
+					<a class="navbar-brand" ng-href="/">Join my Talk!</a>
+					<button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".nav-collapse">
+						<span class="icon-bar"></span>
+						<span class="icon-bar"></span>
+						<span class="icon-bar"></span>
+					</button>
+				</div>
+				<div class="navbar-header">
 					<ul class="nav navbar-nav">
 						<li><a href="/contact">Contact</a></li>
 						<li><a href="/tos">Terms of Service</a></li>
 					</ul>
-					<div class="navbar-collapse navbar-right" ng-show="loggedIn">
-						<button class="btn btn-default" ng-click="reload()"><i class="icon-refresh"></i></button>
-						<a ng-href="/settings" class="btn btn-default"><i class="icon-gear"></i>Settings</a>
-						<button class="btn btn-default" ng-click="signOut()"><i class="icon-off"></i>Sign Out</button>
-					</div>
+				</div>
+				<form class="navbar-form navbar-right" ng-show="loggedIn">
+					<button class="btn btn-default" ng-click="reload()"><i class="icon-refresh"></i></button>
+					<a ng-href="/settings" class="btn btn-default"><i class="icon-gear"></i>Settings</a>
+					<button class="btn btn-default" ng-click="signOut()"><i class="icon-off"></i>Sign Out</button>
 				</div>
 			</div>
 			<div ng-view></div>
