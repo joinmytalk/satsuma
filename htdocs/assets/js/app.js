@@ -43,6 +43,7 @@ satsumaApp.controller('PDFViewCtrl', [ '$scope', '$routeParams', '$http', '$loca
 	$scope.mouseCoords = [ ];
 	$scope.oldX = $scope.oldY = 0;
 	$scope.cmds = [ ];
+	$scope.ended = null;
 
 	$scope.documentProgress = function(progressData) {
 		$scope.loadProgress = (100 * progressData.loaded) / progressData.total;
@@ -109,6 +110,15 @@ satsumaApp.controller('PDFViewCtrl', [ '$scope', '$routeParams', '$http', '$loca
 		case "clearSlide":
 			$scope.cmds = _.reject($scope.cmds, function(cmd) { return cmd.page == $scope.pageNum; });
 			$scope.renderPage($scope.pageNum, null);
+			break;
+		case "close":
+			$log.log('received close command');
+			$scope.ended = cmd.timestamp;
+			if ($scope.ws) {
+				$scope.ws.close();
+				$scope.ws = null;
+			}
+			$scope.$apply();
 			break;
 		default:
 			$log.log('unknown/unimplemented command ' + cmd.cmd);
@@ -437,6 +447,7 @@ satsumaApp.controller('PDFViewCtrl', [ '$scope', '$routeParams', '$http', '$loca
 			$scope.id = data.upload_id;
 			$scope.owner = data.owner;
 			$scope.cmds = data.cmds || [ ];
+			$scope.ended = data.ended;
 			if (data.page) {
 				$scope.pageNum = data.page;
 			}

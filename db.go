@@ -100,13 +100,20 @@ func (s *Store) GetSessionInfoByPublicID(publicID string, userID int) (*SessionI
 		`SELECT 
 			uploads.title AS title, 
 			uploads.public_id AS public_id, 
-			uploads.user_id AS user_id
-			FROM uploads, sessions
+			uploads.user_id AS user_id, 
+			sessions.ended AS ended 
+			FROM uploads, sessions 
 			WHERE sessions.upload_id = uploads.id AND
 				sessions.public_id = ?`, publicID)
 	if err != nil {
 		return nil, err
 	}
+	// XXX ugly hack.
+	formatted := result.Ended.Format(time.RFC3339)
+	if formatted != "0001-01-01T00:00:00Z" {
+		result.EndedJSON = formatted
+	}
+
 	err = meddler.QueryRow(s.sqlDB, &result,
 		`SELECT 
 			commands.page AS page
