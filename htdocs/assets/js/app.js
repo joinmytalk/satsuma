@@ -477,6 +477,12 @@ satsumaApp.controller('LoginCtrl', [ '$scope', '$http', '$rootScope', '$location
 	$rootScope.checkedLoggedIn = false;
 	$rootScope.loggedIn = false;
 
+	$scope.reload = function() {
+		// this is not really nice because the scope of who's supposed to receive it is very wide, even though
+		// we really only want to communicate it to the other controller.
+		$rootScope.$broadcast('loggedIn');
+	};
+
 	$scope.signOut = function() {
 		$location.path('/');
 		$http.post('/api/disconnect').
@@ -530,6 +536,11 @@ satsumaApp.controller('MainCtrl', ['$scope', '$http', '$rootScope', '$log', '$ti
 	};
 
 	$scope.$on("loggedIn", function() {
+		$scope.getUploads();
+		$scope.getSessions();
+	});
+
+	$scope.$on("reload", function() {
 		$scope.getUploads();
 		$scope.getSessions();
 	});
