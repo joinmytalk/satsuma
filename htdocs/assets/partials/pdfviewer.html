@@ -10,16 +10,19 @@
 				<a class="btn" ng-click="zoomOut()" title="Zoom out"><i class="icon-zoom-out"></i></a>
 				<a class="btn" ng-click="gotoFullscreen()" title="Switch to fullscreen mode"><i class="icon-fullscreen"></i>Fullscreen</a>
 			</div>
-			<div class="btn-group" ng-show="owner || type == 'viewer'">
+			<div class="btn-group" ng-show="owner || ended || type == 'viewer'">
 				<a class="btn" ng-click="gotoPrev()" title="Previous slide"><i class="icon-backward"></i></a>
 				<a class="btn" ng-click="gotoNext()" title="Next slide"><i class="icon-forward"></i></a>
 			</div>
-			<div class="btn-group" ng-show="owner && type == 'session'">
+			<div class="btn-group" ng-show="owner && type == 'session' && !ended">
 				<a class="btn" ng-click="clearSlide()" title="Clear slide">Clear</a>
 			</div>
-			<div class="btn-group" ng-show="owner && type == 'session'">
+			<div class="btn-group" ng-show="owner && type == 'session' && !ended">
 				<input type="color" ng-model="lineColor" title="Line color" class="vertical-middle">
 				<input type="number" ng-model="lineWidth" title="Line width" min="1" max="100" class="vertical-middle">
+			</div>
+			<div class="btn-group" ng-show="type != 'viewer' && ended">
+				<span class="label label-info">Session Ended</span>
 			</div>
 		</div>
 		<div class="row">

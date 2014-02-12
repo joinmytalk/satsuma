@@ -2,11 +2,14 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
+	"net/http"
+	"time"
+
+	"github.com/garyburd/redigo/redis"
 	"github.com/gorilla/securecookie"
 	"github.com/gorilla/sessions"
 	"github.com/joinmytalk/xlog"
-	"net/http"
-	"time"
 )
 
 type Session struct {
@@ -119,12 +122,14 @@ func (h *GetSessionsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 type SessionInfo struct {
-	Title    string     `meddler:"title" json:"title"`
-	UploadID string     `meddler:"public_id" json:"upload_id"`
-	IsOwner  bool       `json:"owner" meddler:"-"`
-	UserID   int        `meddler:"user_id" json:"-"`
-	Page     int        `meddler:"page" json:"page"`
-	Cmds     []*Command `meddler:"-" json:"cmds"`
+	Title     string     `meddler:"title" json:"title"`
+	UploadID  string     `meddler:"public_id" json:"upload_id"`
+	IsOwner   bool       `json:"owner" meddler:"-"`
+	UserID    int        `meddler:"user_id" json:"-"`
+	Page      int        `meddler:"page" json:"page"`
+	Ended     time.Time  `meddler:"ended,utctimez" json:"-"`
+	EndedJSON string     `meddler:"-" json:"ended,omitempty"`
+	Cmds      []*Command `meddler:"-" json:"cmds"`
 }
 
 type GetSessionInfoHandler struct {
@@ -164,6 +169,7 @@ type StopSessionHandler struct {
 	SessionStore sessions.Store
 	DBStore      *Store
 	SecureCookie *securecookie.SecureCookie
+	RedisAddr    string
 }
 
 func (h *StopSessionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -194,7 +200,7 @@ func (h *StopSessionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ownerID, _, err := h.DBStore.GetOwnerForSession(requestData.PublicID)
+	ownerID, sessionID, err := h.DBStore.GetOwnerForSession(requestData.PublicID)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -209,6 +215,22 @@ func (h *StopSessionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	h.DBStore.StopSession(requestData.PublicID)
 
 	w.WriteHeader(http.StatusNoContent)
+
+	c, err := redis.Dial("tcp", h.RedisAddr)
+	if err != nil {
+		xlog.Errorf("redis.Dial failed: %v", err)
+		return
+	}
+	defer c.Close()
+
+	cmdJSON, _ := json.Marshal(&Command{
+		Cmd:       "close",
+		SessionID: sessionID,
+		Timestamp: time.Now(),
+	})
+
+	c.Send("PUBLISH", fmt.Sprintf("session.%d", sessionID), string(cmdJSON))
+	c.Flush()
 }
 
 type DeleteSessionHandler struct {

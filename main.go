@@ -101,7 +101,7 @@ func main() {
 	apiRouter.Post("/api/renameupload", &RenameUploadHandler{SessionStore: sessionStore, DBStore: dbStore, SecureCookie: secureCookie})
 	apiRouter.Post("/api/delupload", &DeleteUploadHandler{SessionStore: sessionStore, DBStore: dbStore, SecureCookie: secureCookie, UploadStore: fileStore})
 	apiRouter.Post("/api/startsession", &StartSessionHandler{SessionStore: sessionStore, DBStore: dbStore, SecureCookie: secureCookie})
-	apiRouter.Post("/api/stopsession", &StopSessionHandler{SessionStore: sessionStore, DBStore: dbStore, SecureCookie: secureCookie})
+	apiRouter.Post("/api/stopsession", &StopSessionHandler{SessionStore: sessionStore, DBStore: dbStore, SecureCookie: secureCookie, RedisAddr: options.RedisAddr})
 	apiRouter.Post("/api/delsession", &DeleteSessionHandler{SessionStore: sessionStore, DBStore: dbStore, SecureCookie: secureCookie})
 	apiRouter.Get("/api/getsessions", &GetSessionsHandler{SessionStore: sessionStore, DBStore: dbStore})
 	apiRouter.Get("/api/sessioninfo/:id", &GetSessionInfoHandler{SessionStore: sessionStore, DBStore: dbStore})

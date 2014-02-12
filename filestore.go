@@ -53,15 +53,14 @@ func (store *FileUploadStore) Store(id string, uploadedFile io.Reader, origFileN
 		xlog.Debugf("%s is a PDF file, renaming to %s", tmpFile, filename)
 		os.Rename(tmpFile, filename)
 		return true, nil
-	} else {
-		if err = store.ConvertFileToPDF(id, tmpFile, filename); err != nil {
-			xlog.Errorf("conversion to PDF of %s failed: %v", tmpFile, err)
-			os.Remove(tmpFile)
-			os.Remove(filename)
-			return false, err
-		}
-		return false, nil
 	}
+	if err = store.ConvertFileToPDF(id, tmpFile, filename); err != nil {
+		xlog.Errorf("conversion to PDF of %s failed: %v", tmpFile, err)
+		os.Remove(tmpFile)
+		os.Remove(filename)
+		return false, err
+	}
+	return false, nil
 }
 
 // Remove removes an uploaded file from the file store.

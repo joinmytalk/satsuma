@@ -49,6 +49,7 @@
 							<li><a href="/tos">Terms of Service</a></li>
 						</ul>
 						<div class="nav-collapse pull-right" ng-show="loggedIn">
+							<button class="btn" ng-click="reload()"><i class="icon-refresh"></i></button>
 							<a ng-href="/settings" class="btn"><i class="icon-gear"></i>Settings</a>
 							<button class="btn" ng-click="signOut()"><i class="icon-off"></i>Sign Out</button>
 						</div>
