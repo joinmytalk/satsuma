@@ -108,25 +108,30 @@ func main() {
 	mux.Handle("/api/ws", websocket.Handler(func(c *websocket.Conn) {
 		WebsocketHandler(c, dbStore, sessionStore, options.RedisAddr)
 	}))
-	mux.Handle("/api/", apiRouter)
+	// let all API things go through autogzip.
+	mux.Handle("/api/", autogzip.Handle(apiRouter))
 
-	deliverIndex := func(w http.ResponseWriter, r *http.Request) {
+	// deliver index.html through autogzip.
+	deliverIndex := autogzip.HandleFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, path.Join(options.HtdocsDir, "index.html"))
-	}
+	})
 
 	// deliver index.html for AngularJS routes.
 	mux.HandleFunc("/v/", deliverIndex)
 	mux.HandleFunc("/s/", deliverIndex)
+
+	// XXX make sure that files from /userdata/ don't go through autogzip. That messes up
+	// the load progress of pdf.js.
 	mux.Handle("/userdata/", http.StripPrefix("/userdata/", fileStore))
 
 	mux.HandleFunc("/contact", deliverIndex)
 	mux.HandleFunc("/tos", deliverIndex)
 	mux.HandleFunc("/settings", deliverIndex)
 
-	// deliver static files from htdocs.
-	mux.Handle("/", http.FileServer(http.Dir(options.HtdocsDir)))
+	// deliver static files from htdocs, autogzip'd.
+	mux.Handle("/", autogzip.Handle(http.FileServer(http.Dir(options.HtdocsDir))))
 
-	handler := http.Handler(autogzip.Handle(mux))
+	handler := http.Handler(mux)
 	if options.AccessLog {
 		handler = Logger(handler)
 	}

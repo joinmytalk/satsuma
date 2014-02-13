@@ -26,8 +26,10 @@
 			</div>
 		</div>
 		<div class="row">
-			<div class="col-md-12 progress progress-striped active" ng-show="loadProgress > 0">
-				<div class="bar" style="width: {{loadProgress}}%"></div>
+			<div class="col-md-12 progress progress-striped active" role="progressbar" ng-show="loadProgress > 0">
+				<div class="progress-bar" style="width: {{loadProgress}}%">
+					<span class="sr-only">{{loadProgress}% Complete</span>
+				</div>
 			</div>
 		</div>
 		<div class="row">

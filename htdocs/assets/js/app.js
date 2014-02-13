@@ -46,8 +46,13 @@ satsumaApp.controller('PDFViewCtrl', [ '$scope', '$routeParams', '$http', '$loca
 	$scope.ended = null;
 
 	$scope.documentProgress = function(progressData) {
+		$log.log(progressData);
 		$scope.loadProgress = (100 * progressData.loaded) / progressData.total;
 		$scope.loadProgress = Math.round($scope.loadProgress*100)/100;
+		if ($scope.loadProgress > 100) {
+			$scope.loadProgress = 100;
+		}
+		$log.log('documentProgress: loadProgress =', $scope.loadProgress);
 		$scope.$apply();
 	};
 
