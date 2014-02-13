@@ -1,5 +1,11 @@
+html, body {
+	height: 100%;
+}
+
 body {
-	padding-top: 60px;
+	padding-top: 70px;
+	padding-left: 10px;
+	padding-right: 10px;
 }
 
 .vertical-middle {
@@ -7,30 +13,27 @@ body {
 	width: 50px;
 }
 
-html, body {
-	height: 100%;
+#navbar {
+	margin-right: 0px;
+	padding-left: 10px;
+	padding-right: 10px;
 }
 
 #wrap {
 	min-height: 100%;
 	height: auto !important;
 	height: 100%;
-	margin: 0 auto -120px;
+	margin: 0 auto -60px;
 }
 
-#push {
-	height: 120px;
-}
-
-#footer {
+#push, #footer {
 	height: 60px;
 }
 
-@media (max-width: 767px) {
-	#footer {
-		margin-left: -20px;
-		margin-right: -20px;
-		padding-left: 20px;
-		padding-right: 20px;
-	}
+#pdfviewer-center {
+	text-align: center;
+}
+
+.btn-toolbar {
+	display: inline-block;
 }
