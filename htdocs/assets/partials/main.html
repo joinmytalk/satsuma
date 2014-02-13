@@ -34,22 +34,22 @@
 		<i class="icon-upload-alt"></i>
 		Upload Presentation
 	</button>
-	<form ng-upload action="/api/upload" class="form-horizontal" ng-show="showUpload" id="upload_form">
+	<form ng-upload action="/api/upload" class="form-horizontal" role="form" ng-show="showUpload" id="upload_form">
 		<legend>Upload Presentation</legend>
-		<div class="control-group">
-			<div class="control-label">File you want to upload</div>
-			<div class="controls">
+		<div class="form-group">
+			<label class="col-sm-2 control-label">File you want to upload</label>
+			<div class="col-sm-10">
 				<input type="file" name="file">
 			</div>
 		</div>
-		<div class="control-group">
-			<div class="control-label">Presentation title</div>
-			<div class="controls">
-				<input type="text" placeholder="The title of your presentation" name="title">
+		<div class="form-group">
+			<label class="col-sm-2 control-label">Presentation title</label>
+			<div class="col-sm-10">
+				<input type="text" placeholder="The title of your presentation" name="title" class="form-control">
 			</div>
 		</div>
-		<div class="control-group">
-			<div class="controls">
+		<div class="form-group">
+			<div class="col-sm-offset-2 col-sm-10">
 				<button type="submit" class="btn btn-primary" upload-submit="uploadComplete(content, completed)">Save</button>
 				<button type="button" class="btn btn-default" ng-click="hideUpload()">Cancel</button>
 			</div>
