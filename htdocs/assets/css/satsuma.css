@@ -29,3 +29,11 @@ body {
 #push, #footer {
 	height: 60px;
 }
+
+#pdfviewer-center {
+	text-align: center;
+}
+
+.btn-toolbar {
+	display: inline-block;
+}
