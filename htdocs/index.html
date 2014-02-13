@@ -34,7 +34,7 @@
 			<p class="chromeframe">You are using an <strong>outdated</strong> browser. Please <a href="http://browsehappy.com/">upgrade your browser</a> or <a href="http://www.google.com/chromeframe/?redirect=true">activate Google Chrome Frame</a> to improve your experience.</p>
 		<![endif]-->
 		<div id="wrap" class="container" ng-show="checkedLoggedIn">
-			<div class="navbar navbar-default navbar-fixed-top" id="navbar">
+			<nav class="navbar navbar-default navbar-fixed-top" id="navbar">
 				<div class="navbar-header">
 					<a class="navbar-brand" ng-href="/">Join my Talk!</a>
 					<button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".nav-collapse">
@@ -53,8 +53,8 @@
 					<button class="btn btn-default" ng-click="reload()"><i class="icon-refresh"></i></button>
 					<a ng-href="/settings" class="btn btn-default"><i class="icon-gear"></i>Settings</a>
 					<button class="btn btn-default" ng-click="signOut()"><i class="icon-off"></i>Sign Out</button>
-				</div>
-			</div>
+				</form>
+			</nav>
 			<div ng-view></div>
 			<div id="push"></div>
 		</div>

@@ -1,3 +1,7 @@
+html, body {
+	height: 100%;
+}
+
 body {
 	padding-top: 70px;
 	padding-left: 10px;
@@ -15,3 +19,13 @@ body {
 	padding-right: 10px;
 }
 
+#wrap {
+	min-height: 100%;
+	height: auto !important;
+	height: 100%;
+	margin: 0 auto -60px;
+}
+
+#push, #footer {
+	height: 60px;
+}
