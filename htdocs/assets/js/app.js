@@ -500,6 +500,10 @@ satsumaApp.controller('LoginCtrl', [ '$scope', '$http', '$rootScope', '$location
 	};
 
 	$scope.onLoginPersona = function(assertion) {
+		if ($scope.loggedIn || $scope.personaLoggedIn) {
+			$log.log("onLoginPersona: already logged in, no need to login again.");
+			return;
+		}
 		$log.log("onLoginPersona called: assertion = ", assertion);
 		$http.post('/auth/persona', { 'assertion': assertion }).
 		success(function(data, status, headers, config) {
@@ -508,6 +512,9 @@ satsumaApp.controller('LoginCtrl', [ '$scope', '$http', '$rootScope', '$location
 			$scope.personaLoggedIn = true;
 			$log.log('LoginCtrl: loggedIn = ' + $rootScope.loggedIn);
 			$rootScope.$broadcast('loggedIn');
+		}).
+		error(function() {
+			alert('There was an error logging in through Persona, please try again later.');
 		});
 	};
 
@@ -729,9 +736,48 @@ satsumaApp.controller('MainCtrl', ['$scope', '$http', '$rootScope', '$log', '$ti
 
 }]);
 
-satsumaApp.controller('SettingsCtrl', [ '$scope', '$http', function($scope, $http) {
-	$http.get('/api/connected').
-	success(function(data, status, header, config) {
-		$scope.connected = data;
+satsumaApp.controller('SettingsCtrl', [ '$scope', '$http', '$log', function($scope, $http, $log) {
+	$scope.getConnectedAuthAPIs = function() {
+		$log.log("Settings: getConnectedAuthAPIs");
+		$http.get('/api/connected').
+		success(function(data, status, header, config) {
+			$log.log("Settings: authenticated APIs: ", data);
+			$scope.connected = data;
+		});
+	};
+	$scope.personaConnectButtonClicked = false;
+
+	$scope.getConnectedAuthAPIs();
+
+	$scope.connectToPersona = function() {
+		$scope.personaConnectButtonClicked = true;
+		navigator.id.request();
+	};
+
+	$scope.onLoginPersona = function(assertion) {
+		if (!$scope.personaConnectButtonClicked) {
+			return;
+		}
+		$log.log("Settings: onLoginPersona called: assertion = ", assertion);
+		$http.post('/auth/persona', { 'assertion': assertion }).
+		success(function(data, status, headers, config) {
+			// connecting was successful, now fetch list of connected auth APIs again.
+			$scope.getConnectedAuthAPIs();
+			$scope.personaConnectButtonClicked = false;
+		}).
+		error(function() {
+			alert('There was an error logging in through Persona, please try again later.');
+			$scope.personaConnectButtonClicked = false;
+		});
+	};
+
+	$scope.onLogoutPersona = function() {
+		$log.log("Settings: onLogoutPersona called");
+	};
+
+	navigator.id.watch({
+		onlogin: $scope.onLoginPersona,
+		onlogout: $scope.onLogoutPersona
 	});
+
 }]);

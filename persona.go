@@ -35,9 +35,10 @@ func (h *PersonaAuthHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	form := url.Values{"assertion": []string{assertionData.Assertion}, "audience": []string{h.Audience}}
 
+	xlog.Debugf("Verifying Persona assertion...")
 	resp, err := http.PostForm("https://verifier.login.persona.org/verify", form)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusForbidden)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
