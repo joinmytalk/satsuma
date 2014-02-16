@@ -481,12 +481,44 @@ satsumaApp.controller('LoginCtrl', [ '$scope', '$http', '$rootScope', '$location
 	$log.log('LoginCtrl: new instance');
 	$rootScope.checkedLoggedIn = false;
 	$rootScope.loggedIn = false;
+	$scope.personaLoggedIn = false;
 
 	$scope.reload = function() {
 		// this is not really nice because the scope of who's supposed to receive it is very wide, even though
 		// we really only want to communicate it to the other controller.
 		$rootScope.$broadcast('loggedIn');
 	};
+
+	$scope.signinPersona = function() {
+		$log.log("signinPersona called");
+		navigator.id.request();
+	};
+
+	$scope.signoutPersona = function() {
+		$log.log("signoutPersona called");
+		navigator.id.logout();
+	};
+
+	$scope.onLoginPersona = function(assertion) {
+		$log.log("onLoginPersona called: assertion = ", assertion);
+		$http.post('/auth/persona', { 'assertion': assertion }).
+		success(function(data, status, headers, config) {
+			$rootScope.checkedLoggedIn = true;
+			$rootScope.loggedIn = true;
+			$scope.personaLoggedIn = true;
+			$log.log('LoginCtrl: loggedIn = ' + $rootScope.loggedIn);
+			$rootScope.$broadcast('loggedIn');
+		});
+	};
+
+	$scope.onLogoutPersona = function() {
+		$log.log("onLogoutPersona called");
+	};
+
+	navigator.id.watch({
+		onlogin: $scope.onLoginPersona,
+		onlogout: $scope.onLogoutPersona
+	});
 
 	$scope.signOut = function() {
 		$location.path('/');
@@ -498,6 +530,10 @@ satsumaApp.controller('LoginCtrl', [ '$scope', '$http', '$rootScope', '$location
 			$rootScope.loggedIn = false;
 			$log.error('disconnect failed: ' + data);
 		});
+		if ($scope.personaLoggedIn) {
+			$scope.personaLoggedIn = false;
+			$scope.signoutPersona();
+		}
 	};
 
 	$http.get('/api/loggedin').
