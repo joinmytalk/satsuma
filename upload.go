@@ -197,7 +197,11 @@ func (h *GetUploadsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userID := session.Values["userID"].(int)
+	userID, ok := session.Values["userID"].(int)
+	if !ok {
+		http.Error(w, "no userID in session", http.StatusForbidden)
+		return
+	}
 
 	StatCount("get uploads", 1)
 
