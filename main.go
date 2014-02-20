@@ -46,6 +46,7 @@ func main() {
 		StatHat             string `goptions:"--stathat, description='Enable StatHat tracking and set user key'"`
 		Topic               string `goptions:"--topic, description='Topic to which uploads shall be published for conversions'"`
 		NSQAddr             string `goptions:"--nsqd, description='address:port of nsqd to publish messages to'"`
+		PersonaAudience     string `goptions:"--persona-audience, description='Persona audience, e.g. http://localhost:8080'"`
 	}{
 		Addr:      "[::]:8080",
 		RedisAddr: ":6379",
@@ -87,6 +88,7 @@ func main() {
 	// auth calls
 	mux.Handle("/auth/gplus", auth.Google(options.GplusClientID, options.GplusClientSecret, options.GPlusAuthURL))
 	mux.Handle("/auth/twitter", auth.Twitter(options.TwitterClientKey, options.TwitterClientSecret, options.TwitterAuthURL))
+	mux.Handle("/auth/persona", &PersonaAuthHandler{Audience: options.PersonaAudience, SessionStore: sessionStore, DBStore: dbStore, SecureCookie: secureCookie})
 
 	// API calls.
 	apiRouter := pat.New()

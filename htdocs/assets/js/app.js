@@ -481,12 +481,51 @@ satsumaApp.controller('LoginCtrl', [ '$scope', '$http', '$rootScope', '$location
 	$log.log('LoginCtrl: new instance');
 	$rootScope.checkedLoggedIn = false;
 	$rootScope.loggedIn = false;
+	$scope.personaLoggedIn = false;
 
 	$scope.reload = function() {
 		// this is not really nice because the scope of who's supposed to receive it is very wide, even though
 		// we really only want to communicate it to the other controller.
-		$rootScope.$broadcast('loggedIn');
+		$rootScope.$broadcast('reload');
 	};
+
+	$scope.signinPersona = function() {
+		$log.log("signinPersona called");
+		navigator.id.request();
+	};
+
+	$scope.signoutPersona = function() {
+		$log.log("signoutPersona called");
+		navigator.id.logout();
+	};
+
+	$scope.onLoginPersona = function(assertion) {
+		if ($scope.loggedIn || $scope.personaLoggedIn) {
+			$log.log("onLoginPersona: already logged in, no need to login again.");
+			return;
+		}
+		$log.log("onLoginPersona called: assertion = ", assertion);
+		$http.post('/auth/persona', { 'assertion': assertion }).
+		success(function(data, status, headers, config) {
+			$rootScope.checkedLoggedIn = true;
+			$rootScope.loggedIn = true;
+			$scope.personaLoggedIn = true;
+			$log.log('LoginCtrl: loggedIn = ' + $rootScope.loggedIn);
+			$rootScope.$broadcast('loggedIn');
+		}).
+		error(function() {
+			alert('There was an error logging in through Persona, please try again later.');
+		});
+	};
+
+	$scope.onLogoutPersona = function() {
+		$log.log("onLogoutPersona called");
+	};
+
+	navigator.id.watch({
+		onlogin: $scope.onLoginPersona,
+		onlogout: $scope.onLogoutPersona
+	});
 
 	$scope.signOut = function() {
 		$location.path('/');
@@ -498,6 +537,10 @@ satsumaApp.controller('LoginCtrl', [ '$scope', '$http', '$rootScope', '$location
 			$rootScope.loggedIn = false;
 			$log.error('disconnect failed: ' + data);
 		});
+		if ($scope.personaLoggedIn) {
+			$scope.personaLoggedIn = false;
+			$scope.signoutPersona();
+		}
 	};
 
 	$http.get('/api/loggedin').
@@ -541,11 +584,13 @@ satsumaApp.controller('MainCtrl', ['$scope', '$http', '$rootScope', '$log', '$ti
 	};
 
 	$scope.$on("loggedIn", function() {
+		$log.log("on loggedIn received");
 		$scope.getUploads();
 		$scope.getSessions();
 	});
 
 	$scope.$on("reload", function() {
+		$log.log("on reload received");
 		$scope.getUploads();
 		$scope.getSessions();
 	});
@@ -693,9 +738,48 @@ satsumaApp.controller('MainCtrl', ['$scope', '$http', '$rootScope', '$log', '$ti
 
 }]);
 
-satsumaApp.controller('SettingsCtrl', [ '$scope', '$http', function($scope, $http) {
-	$http.get('/api/connected').
-	success(function(data, status, header, config) {
-		$scope.connected = data;
+satsumaApp.controller('SettingsCtrl', [ '$scope', '$http', '$log', function($scope, $http, $log) {
+	$scope.getConnectedAuthAPIs = function() {
+		$log.log("Settings: getConnectedAuthAPIs");
+		$http.get('/api/connected').
+		success(function(data, status, header, config) {
+			$log.log("Settings: authenticated APIs: ", data);
+			$scope.connected = data;
+		});
+	};
+	$scope.personaConnectButtonClicked = false;
+
+	$scope.getConnectedAuthAPIs();
+
+	$scope.connectToPersona = function() {
+		$scope.personaConnectButtonClicked = true;
+		navigator.id.request();
+	};
+
+	$scope.onLoginPersona = function(assertion) {
+		if (!$scope.personaConnectButtonClicked) {
+			return;
+		}
+		$log.log("Settings: onLoginPersona called: assertion = ", assertion);
+		$http.post('/auth/persona', { 'assertion': assertion }).
+		success(function(data, status, headers, config) {
+			// connecting was successful, now fetch list of connected auth APIs again.
+			$scope.getConnectedAuthAPIs();
+			$scope.personaConnectButtonClicked = false;
+		}).
+		error(function() {
+			alert('There was an error logging in through Persona, please try again later.');
+			$scope.personaConnectButtonClicked = false;
+		});
+	};
+
+	$scope.onLogoutPersona = function() {
+		$log.log("Settings: onLogoutPersona called");
+	};
+
+	navigator.id.watch({
+		onlogin: $scope.onLoginPersona,
+		onlogout: $scope.onLogoutPersona
 	});
+
 }]);

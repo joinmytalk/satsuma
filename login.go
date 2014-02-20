@@ -129,10 +129,14 @@ func (h *LoggedInHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	loggedIn := (session.Values["username"] != nil)
+	loggedIn := false
+	username, ok := session.Values["username"].(string)
+	if ok {
+		loggedIn = true
+	}
 
 	w.Header().Set("Content-Type", "application/json")
-	jsonEncoder.Encode(map[string]bool{"logged_in": loggedIn})
+	jsonEncoder.Encode(map[string]interface{}{"logged_in": loggedIn, "username": username})
 }
 
 type ConnectedHandler struct {
