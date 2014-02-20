@@ -486,7 +486,7 @@ satsumaApp.controller('LoginCtrl', [ '$scope', '$http', '$rootScope', '$location
 	$scope.reload = function() {
 		// this is not really nice because the scope of who's supposed to receive it is very wide, even though
 		// we really only want to communicate it to the other controller.
-		$rootScope.$broadcast('loggedIn');
+		$rootScope.$broadcast('reload');
 	};
 
 	$scope.signinPersona = function() {
@@ -584,11 +584,13 @@ satsumaApp.controller('MainCtrl', ['$scope', '$http', '$rootScope', '$log', '$ti
 	};
 
 	$scope.$on("loggedIn", function() {
+		$log.log("on loggedIn received");
 		$scope.getUploads();
 		$scope.getSessions();
 	});
 
 	$scope.$on("reload", function() {
+		$log.log("on reload received");
 		$scope.getUploads();
 		$scope.getSessions();
 	});
