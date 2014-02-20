@@ -19,3 +19,9 @@ logged in with another account and want to merge both accounts.
 		Connect to Twitter
 	</a>
 </p>
+<p>
+	<span ng-show="connected.persona">Your account is connected to Persona.</span>
+	<a class="btn btn-default" ng-click="connectToPersona()" ng-hide="connected.persona">
+		Connect to Persona
+	</a>
+</p>

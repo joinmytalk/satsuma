@@ -190,21 +190,29 @@ func (s *Store) AddUser(username string, userID int) error {
 	}{}
 	err := meddler.QueryAll(s.sqlDB, &userData, "SELECT user_id FROM accounts WHERE username = ? LIMIT 1", username)
 	if err != nil {
+		xlog.Errorf("AddUser: SELECT for username %s failed: %v", username, err)
 		return err
 	}
 
 	if len(userData) > 0 {
 		// account already logged in previously, migrate data to this user.
+		if userData[0].UserID == userID {
+			xlog.Debugf("userID is the same, not doing anything.")
+			return nil
+		}
+		xlog.Debugf("AddUser: user exists, migrating data to this user. userID %d -> %d", userData[0].UserID, userID)
 
 		// first, set account entries to current user.
-		_, err := s.sqlDB.Exec("UPDATE accounts SET user_id = ? WHERE id = ?", userID, userData[0].UserID)
+		_, err := s.sqlDB.Exec("UPDATE accounts SET user_id = ? WHERE user_id = ?", userID, userData[0].UserID)
 		if err != nil {
+			xlog.Errorf("AddUser: migrating accounts for username %s to userID %d failed: %v", username, userID, err)
 			return err
 		}
 
 		// then migrate uploads to current user.
 		_, err = s.sqlDB.Exec("UPDATE uploads SET user_id = ? WHERE user_id = ?", userID, userData[0].UserID)
 		if err != nil {
+			xlog.Errorf("AddUser: migrating uploads for username %s to userID %d failed: %v", username, userID, err)
 			return err
 		}
 
@@ -214,6 +222,7 @@ func (s *Store) AddUser(username string, userID int) error {
 		// account is unknown, simply add new entry to accounts table.
 		_, err := s.sqlDB.Exec("INSERT INTO accounts (username, user_id) VALUES (?, ?)", username, userID)
 		if err != nil {
+			xlog.Errorf("AddUser: INSERT failed: %v", err)
 			return err
 		}
 	}
@@ -258,6 +267,7 @@ func (s *Store) GetConnectedSystemsForUser(userID int) []string {
 	systemMappings := map[string]string{
 		"google.com":  "gplus",
 		"twitter.com": "twitter",
+		"persona":     "persona",
 	}
 
 	connectedAccounts := []*struct {
