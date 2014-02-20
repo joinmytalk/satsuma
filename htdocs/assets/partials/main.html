@@ -32,7 +32,7 @@
 
 	<!-- upload form -->
 	<button class="btn btn-primary" ng-click="openUpload()" ng-hide="showUpload">
-		<i class="icon-upload-alt"></i>
+		<i class="fa fa-cloud-upload"></i>
 		Upload Presentation
 	</button>
 	<form ng-upload action="/api/upload" class="form-horizontal" role="form" ng-show="showUpload" id="upload_form">
@@ -73,7 +73,7 @@
 			</td>
 			<td>
 				<a ng-show="upload.conversion == 'success'" ng-href="/userdata/{{upload.id}}.pdf" target="_blank">
-					<i class="icon-download-alt"></i>
+					<i class="fa fa-cloud-download"></i>
 					Download
 				</a>
 				<span ng-show="upload.conversion == 'progress'">
@@ -89,7 +89,7 @@
 				<span ng-show="upload.conversion == 'progress'">
 					We are currently processing and converting your upload.
 					<button class="btn btn-default" ng-click="getUploads()">
-						<i class="icon-refresh"></i>
+						<i class="fa fa-refresh"></i>
 						Reload
 					</button>
 				</span>
@@ -98,19 +98,19 @@
 				</span>
 
 				<button ng-show="upload.conversion == 'success'" class="btn btn-default" ng-click="renameUpload($index)">
-					<i class="icon-edit"></i>
+					<i class="fa fa-edit"></i>
 					Rename
 				</button>
 				<button ng-show="upload.conversion == 'success'" class="btn btn-default" ng-click="startSession(upload.id)">
-					<i class="icon-play"></i>
+					<i class="fa fa-play"></i>
 					Start Session
 				</button>
 				<button ng-show="upload.conversion != 'progress'" class="btn btn-default" ng-click="deleteUpload(upload.id)">
-					<i class="icon-trash"></i>
+					<i class="fa fa-trash-o"></i>
 					Delete Presentation
 				</button>
 				<a ng-href="https://twitter.com/intent/tweet?url=https://joinmytalk.com/s/{{upload.id}}&amp;text={{upload.title}}" class="btn btn-default">
-					<i class="icon-twitter"></i>
+					<i class="fa fa-twitter"></i>
 					Tweet Presentation
 				</a>
 			</td>
@@ -129,15 +129,15 @@
 			<td><span title="{{session.ended}}">{{session.ended_relative}}</span></td>
 			<td class="text-right">
 				<button class="btn btn-default" ng-click="stopSession(session.id)" ng-show="!session.ended">
-					<i class="icon-stop"></i>
+					<i class="fa fa-stop"></i>
 					Stop Session
 				</button>
 				<button class="btn btn-default" ng-click="deleteSession(session.id)" ng-show="session.ended">
-					<i class="icon-trash"></i>
+					<i class="fa fa-trash-o"></i>
 					Delete Session
 				</button>
 				<a ng-href="https://twitter.com/intent/tweet?url=https://joinmytalk.com/v/{{session.id}}&amp;text={{session.title}}" class="btn btn-default">
-					<i class="icon-twitter"></i>
+					<i class="fa fa-twitter"></i>
 					Tweet Session
 				</a>
 			</td>

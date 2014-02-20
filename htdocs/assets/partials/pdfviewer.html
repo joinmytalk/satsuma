@@ -3,16 +3,16 @@
 		<h1 ng-show="title" class="text-center">{{title}}</h1>
 		<div class="btn-toolbar text-center" id="pdfviewer-toolbar">
 			<div class="btn-group">
-				<a class="btn btn-default" ng-click="exit()" title="Exit presentation"><i class="icon-off"></i>Exit</a>
+				<a class="btn btn-default" ng-click="exit()" title="Exit presentation"><i class="fa fa-power-off"></i>Exit</a>
 			</div>
 			<div class="btn-group">
-				<a class="btn btn-default" ng-click="zoomIn()" title="Zoom in"><i class="icon-zoom-in"></i></a>
-				<a class="btn btn-default" ng-click="zoomOut()" title="Zoom out"><i class="icon-zoom-out"></i></a>
-				<a class="btn btn-default" ng-click="gotoFullscreen()" title="Switch to fullscreen mode"><i class="icon-fullscreen"></i>Fullscreen</a>
+				<a class="btn btn-default" ng-click="zoomIn()" title="Zoom in"><i class="fa fa-search-plus"></i></a>
+				<a class="btn btn-default" ng-click="zoomOut()" title="Zoom out"><i class="fa fa-search-minus"></i></a>
+				<a class="btn btn-default" ng-click="gotoFullscreen()" title="Switch to fullscreen mode"><i class="fa fa-arrows-alt"></i>Fullscreen</a>
 			</div>
 			<div class="btn-group" ng-show="owner || ended || type == 'viewer'">
-				<a class="btn btn-default" ng-click="gotoPrev()" title="Previous slide"><i class="icon-backward"></i></a>
-				<a class="btn btn-default" ng-click="gotoNext()" title="Next slide"><i class="icon-forward"></i></a>
+				<a class="btn btn-default" ng-click="gotoPrev()" title="Previous slide"><i class="fa fa-backward"></i></a>
+				<a class="btn btn-default" ng-click="gotoNext()" title="Next slide"><i class="fa fa-forward"></i></a>
 			</div>
 			<div class="btn-group" ng-show="owner && type == 'session' && !ended">
 				<a class="btn btn-default" ng-click="clearSlide()" title="Clear slide">Clear</a>
