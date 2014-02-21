@@ -14,6 +14,8 @@ import (
 )
 
 func main() {
+	xlog.SetOutput(os.Stdout)
+
 	options := struct {
 		Topic   string `goptions:"--topic, description='Topic', obligatory"`
 		Channel string `goptions:"--channel, description='Channel', obligatory"`

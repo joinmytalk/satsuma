@@ -27,6 +27,8 @@ const (
 )
 
 func main() {
+	xlog.SetOutput(os.Stdout)
+
 	options := struct {
 		Addr                string `goptions:"-L, --listen, description='Listen address'"`
 		HashKey             string `goptions:"--hashkey, description='Hash key for cookie store and XSRF', obligatory"`
