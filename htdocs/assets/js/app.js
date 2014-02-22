@@ -30,6 +30,8 @@ satsumaApp.controller('PDFViewCtrl', [ '$scope', '$routeParams', '$http', '$loca
 	};
 	$log.log('PDFViewCtrl: new instance. type = ' + $scope.type);
 
+	$scope.url = window.location.href;
+	$log.log('URL = ', $scope.url);
 	$scope.pageNum = 1;
 	$scope.loadProgress = 0;
 	$scope.fullscreen = false;
@@ -552,7 +554,7 @@ satsumaApp.controller('LoginCtrl', [ '$scope', '$http', '$rootScope', '$location
 	});
 }]);
 
-satsumaApp.controller('MainCtrl', ['$scope', '$http', '$rootScope', '$log', '$timeout', function($scope, $http, $rootScope, $log, $timeout) {
+satsumaApp.controller('MainCtrl', ['$scope', '$http', '$rootScope', '$log', '$timeout', '$window', function($scope, $http, $rootScope, $log, $timeout, $window) {
 	$log.log('MainCtrl: new instance');
 
 	$scope.error = null;
@@ -628,6 +630,9 @@ satsumaApp.controller('MainCtrl', ['$scope', '$http', '$rootScope', '$log', '$ti
 	};
 
 	$scope.deleteUpload = function(uploadID) {
+		if (!$window.confirm("Do you really want to delete this presention?")) {
+			return;
+		}
 		$http.post('/api/delupload', { 'upload_id': uploadID }).
 		success(function(data, status, headers, config) {
 			$scope.getUploads();
@@ -700,6 +705,9 @@ satsumaApp.controller('MainCtrl', ['$scope', '$http', '$rootScope', '$log', '$ti
 	};
 
 	$scope.deleteSession = function(sessionID) {
+		if (!$window.confirm("Do you really want to delete this session?")) {
+			return;
+		}
 		$http.post('/api/delsession', { "session_id": sessionID }).
 		success(function(data, status, headers, config) {
 			$scope.getSessions();

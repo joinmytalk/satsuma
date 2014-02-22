@@ -26,9 +26,9 @@
 			</div>
 		</div>
 		<div class="row">
-			<div class="col-md-12 progress progress-striped active" role="progressbar" ng-show="loadProgress > 0">
+			<div class="col-md-12 progress progress-striped active" role="progressbar" ng-show="loadProgress > 0 && loadProgress < 100">
 				<div class="progress-bar" style="width: {{loadProgress}}%">
-					<span class="sr-only">{{loadProgress}% Complete</span>
+					<span class="sr-only">{{loadProgress}}% Complete</span>
 				</div>
 			</div>
 		</div>
@@ -37,6 +37,14 @@
 				<div id="canvas_wrapper" class="text-center">
 					<canvas id="slide_canvas" style="border: 1px solid black"></canvas>
 				</div>
+			</div>
+		</div>
+		<div class="row" ng-show="type == 'session'">
+			<div class="col-md-4">
+				Share this URL with others so that they can follow your presentation:
+			</div>
+			<div class="col-md-8">
+				<input type="text" disabled="true" value="{{url}}" class="form-control">
 			</div>
 		</div>
 	</div>
