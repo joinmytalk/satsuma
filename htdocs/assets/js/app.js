@@ -30,6 +30,8 @@ satsumaApp.controller('PDFViewCtrl', [ '$scope', '$routeParams', '$http', '$loca
 	};
 	$log.log('PDFViewCtrl: new instance. type = ' + $scope.type);
 
+	$scope.url = window.location.href;
+	$log.log('URL = ', $scope.url);
 	$scope.pageNum = 1;
 	$scope.loadProgress = 0;
 	$scope.fullscreen = false;
