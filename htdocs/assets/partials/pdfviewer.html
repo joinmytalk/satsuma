@@ -39,12 +39,18 @@
 				</div>
 			</div>
 		</div>
-		<div class="row" ng-show="type == 'session'">
-			<div class="col-md-4">
-				Share this URL with others so that they can follow your presentation:
+		<div class="row" ng-show="type == 'session'" style="margin-top: 45px">
+			<div class="col-md-offset-2 col-md-2 text-left">
+				Share this URL with others to follow your presentation:
 			</div>
-			<div class="col-md-8">
+			<div class="col-md-4">
 				<input type="text" disabled="true" value="{{url}}" class="form-control">
+			</div>
+			<div class="col-md-2">
+				<a ng-href="https://twitter.com/intent/tweet?url={{url}}&amp;text={{title}}" class="btn btn-default">
+					<i class="fa fa-twitter"></i>
+					Tweet Session
+				</a>
 			</div>
 		</div>
 	</div>
