@@ -24,9 +24,11 @@ satsumaApp.controller('PDFViewCtrl', [ '$scope', '$routeParams', '$http', '$loca
 	if ($routeParams.uploadid) {
 		$scope.type = "viewer";
 		$scope.id = $routeParams.uploadid;
+		$scope.rescaleMargin = 180;
 	} else if ($routeParams.sessionid) {
 		$scope.sessionId = $routeParams.sessionid;
 		$scope.type = "session";
+		$scope.rescaleMargin = 220;
 	};
 	$log.log('PDFViewCtrl: new instance. type = ' + $scope.type);
 
@@ -38,6 +40,7 @@ satsumaApp.controller('PDFViewCtrl', [ '$scope', '$routeParams', '$http', '$loca
 	$scope.pdfDoc = null;
 	$scope.origScale = 1.0;
 	$scope.scale = $scope.origScale;
+	$scope.scaleSet = false;
 
 	$scope.isMouseDown = false;
 	$scope.lineWidth = 10;
@@ -78,6 +81,12 @@ satsumaApp.controller('PDFViewCtrl', [ '$scope', '$routeParams', '$http', '$loca
 				var new_scale = Math.min($scope.scale * (window.screen.height / viewport.height), $scope.scale * (window.screen.width / viewport.width));
 				$log.log('scale = ' + $scope.scale + ' new scale = ' + new_scale);
 				viewport = page.getViewport(new_scale);
+			} else if (!$scope.scaleSet) {
+				var new_scale = Math.min($scope.scale * ((window.innerHeight - $scope.rescaleMargin) / viewport.height), $scope.scale * ((window.innerWidth - 100) / viewport.width));
+				$log.log('non-fullscreen scale = ' + $scope.scale + ' new scale = ' + new_scale);
+				viewport = page.getViewport(new_scale);
+				$scope.scale = new_scale;
+				$scope.scaleSet = true;
 			}
 
 			var canvas = document.getElementById('slide_canvas');
