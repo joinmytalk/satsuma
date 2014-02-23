@@ -56,6 +56,11 @@ func (h *UploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	StatCount("upload presentation", 1)
 
 	title := r.FormValue("title")
+	if title == "" {
+		http.Error(w, "empty title", http.StatusNotAcceptable)
+		return
+	}
+
 	file, fhdr, err := r.FormFile("file")
 	if err != nil {
 		http.Error(w, "couldn't read form", http.StatusInternalServerError)
