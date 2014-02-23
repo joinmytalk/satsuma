@@ -20,7 +20,7 @@ satsumaApp.controller('StaticPageCtrl', [ '$scope', function($scope) {
 	// nothing.
 }]);
 
-satsumaApp.controller('PDFViewCtrl', [ '$scope', '$routeParams', '$http', '$location', '$log', function($scope, $routeParams, $http, $location, $log) {
+satsumaApp.controller('PDFViewCtrl', [ '$scope', '$routeParams', '$http', '$location', '$log', '$timeout', function($scope, $routeParams, $http, $location, $log, $timeout) {
 	if ($routeParams.uploadid) {
 		$scope.type = "viewer";
 		$scope.id = $routeParams.uploadid;
@@ -276,6 +276,11 @@ satsumaApp.controller('PDFViewCtrl', [ '$scope', '$routeParams', '$http', '$loca
 		}
 	};
 
+	$scope.reconnectWebsocketDelayed = function(evt) {
+		$log.log("reconnectWebsocketDelayed: waiting 5 seconds before reconnect");
+		$timeout($scope.reconnectWebsocket, 5000);
+	};
+
 	$scope.logWebsocketError = function(evt) {
 		$log.log('websocket error: ' + evt.data);
 	};
@@ -472,7 +477,7 @@ satsumaApp.controller('PDFViewCtrl', [ '$scope', '$routeParams', '$http', '$loca
 				$scope.ws.onopen = $scope.openWebSocketSlave;
 				$scope.ws.onmessage = $scope.onMessageSlave;
 			}
-			$scope.ws.onclose = $scope.reconnectWebsocket;
+			$scope.ws.onclose = $scope.reconnectWebsocketDelayed;
 			$scope.ws.onerror = $scope.logWebsocketError;
 		});
 		break;
