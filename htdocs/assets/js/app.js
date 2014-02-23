@@ -564,6 +564,7 @@ satsumaApp.controller('MainCtrl', ['$scope', '$http', '$rootScope', '$log', '$ti
 	$scope.loading_uploads = false;
 	$scope.loading_sessions = false;
 	$scope.get_upload_retries = 0;
+	$scope.upload_title = null;
 
 	window.signinCallback = function(authData) {
 		$log.log('signinCallback called');
@@ -732,10 +733,14 @@ satsumaApp.controller('MainCtrl', ['$scope', '$http', '$rootScope', '$log', '$ti
 	$scope.hideUpload = function() {
 		$scope.showUpload = false;
 		$('#upload_form').get(0).reset();
+		$scope.upload_title = null;
 	};
 
 	$scope.openUpload = function() {
 		$scope.showUpload = true;
+		$('#upload_form').get(0).reset();
+		$('#upload_btn').attr('disabled', 'disabled');
+		$scope.upload_title = null;
 	};
 
 	if ($rootScope.loggedIn) {
