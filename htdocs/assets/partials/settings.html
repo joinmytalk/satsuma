@@ -5,22 +5,34 @@ Here you can connect additional accounts to your current account. This is
 useful if you want to use different accounts to sign in or when you previously 
 logged in with another account and want to merge both accounts.
 </p>
+<h4>Google+</h4>
 <p>
 	<span ng-show="connected.gplus">Your account is connected to Google+.</span>
+	<a class="btn btn-default" ng-click="disconnect('gplus')" ng-show="connected.gplus">
+		Disconnect
+	</a>
 	<a class="btn btn-default" href="/auth/gplus" target="_self" ng-hide="connected.gplus">
 		<i class="fa fa-google-plus"></i>
 		Connect to Google+
 	</a>
 </p>
+<h4>Twitter</h4>
 <p>
 	<span ng-show="connected.twitter">Your account is connected to Twitter.</span>
+	<a class="btn btn-default" ng-click="disconnect('twitter')" ng-show="connected.twitter">
+		Disconnect
+	</a>
 	<a class="btn btn-default" ng-href="/auth/twitter" target="_self" ng-hide="connected.twitter">
 		<i class="fa fa-twitter"></i>
 		Connect to Twitter
 	</a>
 </p>
+<h4>Persona</h4>
 <p>
 	<span ng-show="connected.persona">Your account is connected to Persona.</span>
+	<a class="btn btn-default" ng-click="disconnect('persona')" ng-show="connected.persona">
+		Disconnect
+	</a>
 	<a class="btn btn-default" ng-click="connectToPersona()" ng-hide="connected.persona">
 		Connect to Persona
 	</a>

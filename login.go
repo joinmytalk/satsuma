@@ -84,24 +84,67 @@ func VerifyXSRFToken(w http.ResponseWriter, r *http.Request, sessionStore sessio
 type DisconnectHandler struct {
 	SessionStore sessions.Store
 	SecureCookie *securecookie.SecureCookie
+	DBStore      *Store
 }
 
 func (h *DisconnectHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	StatCount("disconnect call", 1)
 	if !VerifyXSRFToken(w, r, h.SessionStore, h.SecureCookie) {
 		return
 	}
 
-	// Only disconnect a connected user
 	session, err := h.SessionStore.Get(r, SESSIONNAME)
 	if err != nil {
 		xlog.Errorf("Error fetching session: %v", err)
-		http.Error(w, "Error fetching session", 500)
+		http.Error(w, "Error fetching session", http.StatusInternalServerError)
+		return
+	}
+
+	userID, ok := session.Values["userID"].(int)
+	if !ok {
+		http.Error(w, "Current user not logged in", http.StatusUnauthorized)
+		return
+	}
+
+	postData := struct {
+		Account string `json:"account"`
+	}{}
+
+	if err := json.NewDecoder(r.Body).Decode(&postData); err != nil {
+		xlog.Errorf("DisconnectHandler: decoding POST body failed: %v", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if ok := h.DBStore.DisconnectAccountForUserID(userID, postData.Account); !ok {
+		xlog.Errorf("DisconnectAccountForUserID failed.")
+		http.Error(w, "disconnect failed", http.StatusForbidden)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+type LogoutHandler struct {
+	SessionStore sessions.Store
+	SecureCookie *securecookie.SecureCookie
+}
+
+func (h *LogoutHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	StatCount("logout call", 1)
+	if !VerifyXSRFToken(w, r, h.SessionStore, h.SecureCookie) {
+		return
+	}
+
+	// Only log out a connected user
+	session, err := h.SessionStore.Get(r, SESSIONNAME)
+	if err != nil {
+		xlog.Errorf("Error fetching session: %v", err)
+		http.Error(w, "Error fetching session", http.StatusInternalServerError)
 		return
 	}
 	token := session.Values["username"]
 	if token == nil {
-		http.Error(w, "Current user not connected", 401)
+		http.Error(w, "Current user not logged in", http.StatusUnauthorized)
 		return
 	}
 

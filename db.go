@@ -287,3 +287,40 @@ func (s *Store) GetConnectedSystemsForUser(userID int) []string {
 
 	return systems
 }
+
+func (s *Store) DisconnectAccountForUserID(userID int, account string) bool {
+	allowedPrefixes := map[string]string{
+		"gplus":   "google.com",
+		"twitter": "twitter.com",
+		"persona": "persona",
+	}
+
+	prefix, ok := allowedPrefixes[account]
+	if !ok {
+		return false
+	}
+
+	prefix = prefix + ":"
+
+	accountCount := struct {
+		Count int `meddler:"count"`
+	}{}
+
+	err := meddler.QueryRow(s.sqlDB, &accountCount, "SELECT count(id) AS count FROM accounts WHERE user_id = ?", userID)
+	if err != nil {
+		xlog.Errorf("DisconnectAccountForUserID: query returned error: %v", err)
+		return false
+	}
+
+	if accountCount.Count == 1 {
+		xlog.Errorf("Won't disconnect account, only one account available.")
+		return false
+	}
+
+	_, err = s.sqlDB.Exec("DELETE FROM accounts WHERE user_id = ? AND username LIKE CONCAT(?, '%')", userID, prefix)
+	if err != nil {
+		xlog.Errorf("DisconnectAccountForUserID: DELETE failed: %v", err)
+	}
+
+	return true
+}

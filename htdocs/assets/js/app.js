@@ -545,13 +545,13 @@ satsumaApp.controller('LoginCtrl', [ '$scope', '$http', '$rootScope', '$location
 
 	$scope.signOut = function() {
 		$location.path('/');
-		$http.post('/api/disconnect').
+		$http.post('/api/logout').
 		success(function(data, status, headers, config) {
 			$rootScope.loggedIn = false;
 		}).
 		error(function(data, status, headers, config) {
 			$rootScope.loggedIn = false;
-			$log.error('disconnect failed: ' + data);
+			$log.error('logout failed: ' + data);
 		});
 		if ($scope.personaLoggedIn) {
 			$scope.personaLoggedIn = false;
@@ -766,6 +766,8 @@ satsumaApp.controller('MainCtrl', ['$scope', '$http', '$rootScope', '$log', '$ti
 }]);
 
 satsumaApp.controller('SettingsCtrl', [ '$scope', '$http', '$log', function($scope, $http, $log) {
+	$scope.connected = { };
+
 	$scope.getConnectedAuthAPIs = function() {
 		$log.log("Settings: getConnectedAuthAPIs");
 		$http.get('/api/connected').
@@ -808,5 +810,20 @@ satsumaApp.controller('SettingsCtrl', [ '$scope', '$http', '$log', function($sco
 		onlogin: $scope.onLoginPersona,
 		onlogout: $scope.onLogoutPersona
 	});
+
+	$scope.disconnect = function(accountType) {
+		if (Object.keys($scope.connected).length <= 1) {
+			alert('Cannot disconnect account: this is the only account you are connected to.');
+			return;
+		}
+		$http.post('/api/disconnect', { 'account': accountType }).
+		success(function(data, status, headers, config) {
+			// connecting was successful, now fetch list of connected auth APIs again.
+			$scope.getConnectedAuthAPIs();
+		}).
+		error(function() {
+			alert('There was an error disconnecting from this account, please try again later.');
+		});
+	};
 
 }]);
